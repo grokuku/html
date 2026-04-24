@@ -1,0 +1,257 @@
+/* ===== PARTY BAR & UI ELEMENTS ===== */
+#party-bar {
+    width: 100%;
+    background: var(--bg-panel);
+    border-top: 1px solid var(--border-color);
+    padding: 8px 12px;
+    display: flex;
+    align-items: stretch;
+    gap: 8px;
+    min-height: 90px;
+}
+
+#party-slots {
+    display: flex;
+    gap: 8px;
+    flex: 1;
+}
+
+.party-slot {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 6px 10px;
+    flex: 1;
+    background: var(--bg-dark);
+    border: 1px solid var(--border-color);
+    border-radius: 6px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    position: relative;
+}
+.party-slot:hover {
+    border-color: var(--border-light);
+}
+.party-slot.active-turn {
+    border-color: var(--gold);
+    box-shadow: 0 0 10px rgba(212,160,48,0.3);
+}
+.party-slot.dead {
+    opacity: 0.4;
+    filter: grayscale(1);
+}
+
+.portrait-canvas {
+    border-radius: 4px;
+    border: 1px solid var(--border-color);
+    flex-shrink: 0;
+}
+
+.slot-info {
+    flex: 1;
+    min-width: 0;
+}
+.char-name {
+    font-size: 12px;
+    color: var(--text-primary);
+    font-weight: bold;
+    display: block;
+    margin-bottom: 4px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.stat-bars {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+.stat-bar {
+    height: 6px;
+    background: var(--bg-dark);
+    border-radius: 3px;
+    overflow: hidden;
+    position: relative;
+}
+.stat-fill {
+    height: 100%;
+    border-radius: 3px;
+    transition: width 0.5s ease;
+}
+.hp-bar .stat-fill { background: linear-gradient(90deg, #cc2222, #ff4444); }
+.mana-bar .stat-fill { background: linear-gradient(90deg, #2244cc, #4488ff); }
+.stamina-bar .stat-fill { background: linear-gradient(90deg, #228822, #44cc44); }
+
+.slot-actions {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+.action-btn {
+    width: 28px;
+    height: 28px;
+    background: var(--bg-panel);
+    border: 1px solid var(--border-color);
+    border-radius: 4px;
+    color: var(--text-secondary);
+    font-size: 14px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s ease;
+}
+.action-btn:hover {
+    border-color: var(--gold);
+    color: var(--gold);
+}
+.action-btn:active {
+    transform: scale(0.9);
+}
+.action-btn.on-cooldown {
+    opacity: 0.3;
+    pointer-events: none;
+}
+
+/* Movement Controls */
+#movement-controls {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    grid-template-rows: repeat(2, 1fr);
+    gap: 4px;
+    padding: 8px 12px;
+    background: var(--bg-panel);
+    border-top: 1px solid var(--border-color);
+    max-width: 200px;
+    margin: 0 auto;
+}
+.move-btn {
+    width: 56px;
+    height: 42px;
+    background: var(--bg-panel-light);
+    border: 1px solid var(--border-color);
+    border-radius: 6px;
+    color: var(--text-primary);
+    font-size: 22px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.15s ease;
+}
+.move-btn:hover {
+    background: var(--border-color);
+    border-color: var(--border-light);
+}
+.move-btn:active {
+    transform: scale(0.92);
+    background: var(--gold);
+    color: var(--bg-dark);
+}
+#btn-turn-left { grid-column: 1; grid-row: 1; }
+#btn-forward { grid-column: 2; grid-row: 1; }
+#btn-turn-right { grid-column: 3; grid-row: 1; }
+#btn-strafe-left { grid-column: 1; grid-row: 2; }
+#btn-backward { grid-column: 2; grid-row: 2; }
+#btn-strafe-right { grid-column: 3; grid-row: 2; }
+
+/* Spell Panel */
+#spell-panel {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    background: var(--bg-panel);
+    border: 2px solid var(--gold);
+    border-radius: 12px;
+    padding: 20px;
+    z-index: 20;
+    text-align: center;
+    box-shadow: 0 0 40px rgba(0,0,0,0.8);
+}
+#spell-runes {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 8px;
+    margin-bottom: 12px;
+}
+.rune-btn {
+    width: 56px;
+    height: 56px;
+    background: var(--bg-dark);
+    border: 2px solid var(--border-color);
+    border-radius: 8px;
+    color: var(--text-primary);
+    font-size: 24px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s ease;
+}
+.rune-btn:hover {
+    border-color: var(--gold);
+    color: var(--gold);
+    box-shadow: 0 0 12px rgba(212,160,48,0.3);
+}
+.rune-btn.selected {
+    background: var(--bg-panel-light);
+    border-color: var(--gold);
+    color: var(--gold-light);
+}
+#spell-queue {
+    min-height: 36px;
+    padding: 8px;
+    background: var(--bg-dark);
+    border: 1px solid var(--border-color);
+    border-radius: 6px;
+    margin-bottom: 12px;
+    display: flex;
+    gap: 6px;
+    justify-content: center;
+    align-items: center;
+}
+.spell-queue-rune {
+    font-size: 20px;
+    color: var(--gold-light);
+    animation: fadeIn 0.2s ease;
+}
+#spell-cast, #spell-clear, #spell-close {
+    display: inline-block;
+    padding: 8px 20px;
+    margin: 0 4px;
+    font-size: 13px;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    border-radius: 4px;
+}
+#spell-cast {
+    background: var(--gold);
+    color: var(--bg-dark);
+    font-weight: bold;
+}
+#spell-cast:hover { background: var(--gold-light); }
+#spell-clear {
+    background: transparent;
+    border: 1px solid var(--border-color);
+    color: var(--text-secondary);
+}
+#spell-close {
+    background: transparent;
+    color: var(--danger);
+}
+
+/* Tooltip */
+.tooltip {
+    position: absolute;
+    background: var(--bg-panel);
+    border: 1px solid var(--border-color);
+    border-radius: 6px;
+    padding: 10px 14px;
+    font-size: 12px;
+    z-index: 30;
+    pointer-events: none;
+    max-width: 200px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.5);
+}
+.tooltip .tip-name { color: var(--gold); font-weight: bold; margin-bottom: 4px; }
+.tooltip .tip-desc { color: var(--text-secondary); line-height: 1.4; }
+.tooltip .tip-stats { color: var(--text-dim); margin-top: 4px; }
