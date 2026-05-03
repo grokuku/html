@@ -19,8 +19,10 @@ export class AIController {
     update(dt, allShips) {
         if (this.ship.finished) return;
 
-        // Get track info at ship's position
-        const frame = this.track.getFrameDataAt(this.ship.trackT);
+        // Get track info — with fallback
+        const frame = this.ship.trackT != null ? this.track.getFrameDataAt(this.ship.trackT) : this.track.framePoints[0];
+        if (!frame || !frame.tangent || !frame.binormal) return;
+
         const trackTangent = frame.tangent;
         const trackBinormal = frame.binormal;
 

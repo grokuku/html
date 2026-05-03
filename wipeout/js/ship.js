@@ -294,18 +294,17 @@ export class Ship {
     }
 
     update(dt, track, allShips) {
-        try {
-            this._updateInternal(dt, track, allShips);
-        } catch (e) {
-            console.warn('Ship update error:', e);
-        }
+        this._updateInternal(dt, track, allShips);
     }
 
     _updateInternal(dt, track, allShips) {
+        // Safety: clamp dt to avoid physics explosion
+        const safeDt = Math.max(0.001, Math.min(dt, 0.05));
+
         if (this.finished) {
-            this.speed *= Math.pow(0.95, dt * 60);
+            this.speed *= Math.pow(0.95, safeDt * 60);
             const fwd = new THREE.Vector3(Math.sin(this.rotation), 0, Math.cos(this.rotation));
-            this.position.add(fwd.multiplyScalar(this.speed * dt));
+            this.position.add(fwd.multiplyScalar(this.speed * safeDt));
             this.updateTransform();
             return;
         }
@@ -314,51 +313,56 @@ export class Ship {
         this.lapJustCompleted = false;
         this.raceJustFinished = false;
 
-        // Find nearest track point
+        // Find nearest track point — always get a valid frame
         this.trackIdx = track.getNearestFrameIndex(this.position, this.trackIdx);
-        if (!track.framePoints || track.framePoints.length === 0) return;
-        const frame = track.framePoints[Math.min(this.trackIdx, track.framePoints.length - 1)];
-        if (!frame) return;
+        const frameIdx = Math.max(0, Math.min(this.trackIdx, track.framePoints.length - 1));
+        const frame = track.framePoints[frameIdx];
 
-        this.trackT = this.trackIdx / CONFIG.TRACK_SEGMENTS;
+        // If frame is invalid, still move but skip track-following
+        const hasValidFrame = frame && frame.point && frame.normal && frame.tangent && frame.binormal;
+        if (hasValidFrame) {
+            this.trackT = this.trackIdx / CONFIG.TRACK_SEGMENTS;
+        }
 
-        // === Lap Detection ===
-        if (this.prevTrackIdx > 20 && this.trackIdx <= 5 && this.checkpointT > 0.85) {
-            this.lap++;
-            this.lapTimes.push(this.totalTime);
-            this.checkpointT = 0;
-            this.lapJustCompleted = true;
-            if (this.lap >= CONFIG.NUM_LAPS) {
-                this.finished = true;
-                this.raceJustFinished = true;
+        // === Lap Detection (only with valid frame) ===
+        if (hasValidFrame) {
+            if (this.prevTrackIdx > 20 && this.trackIdx <= 5 && this.checkpointT > 0.85) {
+                this.lap++;
+                this.lapTimes.push(this.totalTime);
+                this.checkpointT = 0;
+                this.lapJustCompleted = true;
+                if (this.lap >= CONFIG.NUM_LAPS) {
+                    this.finished = true;
+                    this.raceJustFinished = true;
+                }
+            }
+            if (this.trackT > 0.85) {
+                this.checkpointT = Math.max(this.checkpointT, this.trackT);
             }
         }
-        if (this.trackT > 0.85) {
-            this.checkpointT = Math.max(this.checkpointT, this.trackT);
-        }
 
-        // === Physics ===
+        // === Physics (ALWAYS run, even without valid frame) ===
         const maxSpeed = CONFIG.MAX_SPEED;
         const effectiveMaxSpeed = this.isBoosting ? maxSpeed * CONFIG.BOOST_SPEED_MULT : maxSpeed;
 
-        if (this.inputAccel) this.speed += CONFIG.ACCELERATION * dt;
-        if (this.inputBrake) this.speed -= CONFIG.BRAKE_FORCE * dt;
+        if (this.inputAccel) this.speed += CONFIG.ACCELERATION * safeDt;
+        if (this.inputBrake) this.speed -= CONFIG.BRAKE_FORCE * safeDt;
 
         if (this.boostTimer > 0) {
-            this.boostTimer -= dt;
+            this.boostTimer -= safeDt;
             this.isBoosting = true;
-            this.speed += CONFIG.ACCELERATION * 0.5 * dt;
+            this.speed += CONFIG.ACCELERATION * 0.5 * safeDt;
         } else {
             this.isBoosting = false;
         }
 
-        this.speed *= Math.pow(CONFIG.DRAG, dt * 60);
+        this.speed *= Math.pow(CONFIG.DRAG, safeDt * 60);
         this.speed = Math.max(0, Math.min(effectiveMaxSpeed, this.speed));
 
         // Steering
-        const steerFactor = 1 + (this.speed / maxSpeed) * 0.5;
+        const steerFactor = 1 + (this.speed / Math.max(1, maxSpeed)) * 0.5;
         this.steerInput = this.inputSteer;
-        this.rotation += this.steerInput * CONFIG.STEER_SPEED * steerFactor * dt;
+        this.rotation += this.steerInput * CONFIG.STEER_SPEED * steerFactor * safeDt;
 
         // Forward direction
         const forward = new THREE.Vector3(Math.sin(this.rotation), 0, Math.cos(this.rotation));
@@ -366,71 +370,70 @@ export class Ship {
 
         // Lateral drift
         const right = new THREE.Vector3(Math.cos(this.rotation), 0, -Math.sin(this.rotation));
-        this.velocity.add(right.clone().multiplyScalar(this.steerInput * this.speed * 0.1 * dt));
+        this.velocity.add(right.clone().multiplyScalar(this.steerInput * this.speed * 0.1 * safeDt));
 
-        this.position.add(this.velocity.clone().multiplyScalar(dt));
+        this.position.add(this.velocity.clone().multiplyScalar(safeDt));
 
-        // === Track Following ===
-        const trackPoint = frame.point;
-        const trackNormal = frame.normal;
-        const trackBinormal = frame.binormal;
-        const trackTangent = frame.tangent;
+        // === Track Following (only with valid frame) ===
+        if (hasValidFrame) {
+            const trackPoint = frame.point;
+            const trackNormal = frame.normal;
+            const trackBinormal = frame.binormal;
+            const trackTangent = frame.tangent;
 
-        // Hover
-        const hoverY = trackPoint.y + CONFIG.HOVER_HEIGHT +
-            Math.sin(performance.now() * 0.005 + (this.isPlayer ? 0 : this.position.x)) * 0.08;
-        const dy = hoverY - this.position.y;
-        this.position.y += dy * Math.min(1, CONFIG.HOVER_SPRING * dt);
+            // Hover
+            const hoverY = trackPoint.y + CONFIG.HOVER_HEIGHT +
+                Math.sin(performance.now() * 0.005 + (this.isPlayer ? 0 : this.position.x)) * 0.08;
+            const dy = hoverY - this.position.y;
+            this.position.y += dy * Math.min(1, CONFIG.HOVER_SPRING * safeDt);
 
-        // Track magnetism
-        const offsetFromCenter = this.position.clone().sub(trackPoint);
-        const lateralProj = offsetFromCenter.dot(trackBinormal);
-        const pullStrength = 0.3 + Math.abs(lateralProj) / (CONFIG.TRACK_WIDTH / 2) * 0.5;
-        this.position.add(trackBinormal.clone().multiplyScalar(-lateralProj * pullStrength * dt));
+            // Track magnetism
+            const offsetFromCenter = this.position.clone().sub(trackPoint);
+            const lateralProj = offsetFromCenter.dot(trackBinormal);
+            const pullStrength = 0.3 + Math.abs(lateralProj) / (CONFIG.TRACK_WIDTH / 2) * 0.5;
+            this.position.add(trackBinormal.clone().multiplyScalar(-lateralProj * pullStrength * safeDt));
 
-        // Roll & Pitch
-        const targetRoll = -this.steerInput * 0.4 * Math.min(1, this.speed / 100);
-        this.roll += (targetRoll - this.roll) * Math.min(1, 6 * dt);
+            // Roll & Pitch
+            const targetRoll = -this.steerInput * 0.4 * Math.min(1, this.speed / 100);
+            this.roll += (targetRoll - this.roll) * Math.min(1, 6 * safeDt);
+            const slopeAngle = -Math.asin(THREE.MathUtils.clamp(trackTangent.y, -1, 1));
+            const targetPitch = slopeAngle * 0.5;
+            this.pitch += (targetPitch - this.pitch) * Math.min(1, 4 * safeDt);
 
-        const slopeAngle = -Math.asin(THREE.MathUtils.clamp(trackTangent.y, -1, 1));
-        const targetPitch = slopeAngle * 0.5;
-        this.pitch += (targetPitch - this.pitch) * Math.min(1, 4 * dt);
+            // Wall collision
+            const wallOffset = this.position.clone().sub(trackPoint);
+            const lateralWall = wallOffset.dot(trackBinormal);
+            const halfW = CONFIG.TRACK_WIDTH / 2 - 1.5;
+            if (Math.abs(lateralWall) > halfW) {
+                const pushSign = Math.sign(lateralWall);
+                const excess = Math.abs(lateralWall) - halfW;
+                this.position.add(trackBinormal.clone().multiplyScalar(-pushSign * excess * 0.8));
+                this.speed *= Math.pow(0.95, safeDt * 60);
+            }
 
-        // === Wall Collision ===
-        const wallOffset = this.position.clone().sub(trackPoint);
-        const lateralWall = wallOffset.dot(trackBinormal);
-        const halfW = CONFIG.TRACK_WIDTH / 2 - 1.5;
+            // Off-track recovery
+            if (this.position.distanceTo(trackPoint) > 25) {
+                this.position.copy(trackPoint);
+                this.position.y += CONFIG.HOVER_HEIGHT;
+                this.speed *= 0.3;
+            }
 
-        if (Math.abs(lateralWall) > halfW) {
-            const pushSign = Math.sign(lateralWall);
-            const excess = Math.abs(lateralWall) - halfW;
-            this.position.add(trackBinormal.clone().multiplyScalar(-pushSign * excess * 0.8));
-            this.speed *= Math.pow(0.95, dt * 60);
-        }
-
-        // Off-track recovery
-        const distToTrack = this.position.distanceTo(trackPoint);
-        if (distToTrack > 20) {
-            this.position.copy(trackPoint);
-            this.position.y += CONFIG.HOVER_HEIGHT;
-            this.speed *= 0.3;
-        }
-
-        // === Pad Pickup ===
-        this.justPickedUpBoost = false;
-        this.justPickedUpWeapon = false;
-        const padResults = track.checkPads(this.position, this.trackT, !!this.currentWeapon);
-        if (padResults.boost) {
-            this.boostEnergy = 1;
-            this.justPickedUpBoost = true;
-        }
-        if (padResults.weapon) {
-            this.currentWeapon = CONFIG.WEAPONS[Math.floor(Math.random() * CONFIG.WEAPONS.length)];
-            this.justPickedUpWeapon = true;
+            // Pad pickup
+            this.justPickedUpBoost = false;
+            this.justPickedUpWeapon = false;
+            const padResults = track.checkPads(this.position, this.trackT, !!this.currentWeapon);
+            if (padResults.boost) {
+                this.boostEnergy = 1;
+                this.justPickedUpBoost = true;
+            }
+            if (padResults.weapon) {
+                this.currentWeapon = CONFIG.WEAPONS[Math.floor(Math.random() * CONFIG.WEAPONS.length)];
+                this.justPickedUpWeapon = true;
+            }
         }
 
         // Shield regen
-        this.shield = Math.min(CONFIG.SHIELD_MAX, this.shield + CONFIG.SHIELD_REGEN * dt);
+        this.shield = Math.min(CONFIG.SHIELD_MAX, this.shield + CONFIG.SHIELD_REGEN * safeDt);
 
         // === Ship Collision ===
         if (allShips) {
