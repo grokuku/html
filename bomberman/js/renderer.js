@@ -272,7 +272,7 @@ B.Renderer = {
             ctx.fillStyle = '#fff';
             ctx.fillText('B:' + p1.maxBombs + ' F:' + p1.fireRange + ' Sp:' + p1.speed, W - 8, 20);
             ctx.fillStyle = '#FFD700';
-            ctx.fillText(p.score + 'pts  K:' + p1.kills, W - 8, 30);
+            ctx.fillText(p1.score + 'pts  K:' + p1.kills, W - 8, 30);
 
             // Abilities
             let abX = W - 160;

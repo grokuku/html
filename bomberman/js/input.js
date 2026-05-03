@@ -64,13 +64,13 @@ B.Input = {
         const gp = this.gamepadStates[gi];
         if (gp) {
             switch (action) {
-                case 'up': return gp.axes[1] < -0.5 || (gp.buttons[12] && gp.buttons[12]);
-                case 'down': return gp.axes[1] > 0.5 || (gp.buttons[13] && gp.buttons[13]);
-                case 'left': return gp.axes[0] < -0.5 || (gp.buttons[14] && gp.buttons[14]);
-                case 'right': return gp.axes[0] > 0.5 || (gp.buttons[15] && gp.buttons[15]);
-                case 'bomb': return gp.buttons[0] && gp.buttons[0];
-                case 'punch': return gp.buttons[2] && gp.buttons[2];
-                case 'kick': return gp.buttons[1] && gp.buttons[1];
+                case 'up': return gp.axes[1] < -0.5 || gp.buttons[12];
+                case 'down': return gp.axes[1] > 0.5 || gp.buttons[13];
+                case 'left': return gp.axes[0] < -0.5 || gp.buttons[14];
+                case 'right': return gp.axes[0] > 0.5 || gp.buttons[15];
+                case 'bomb': return gp.buttons[0];
+                case 'punch': return gp.buttons[2];
+                case 'kick': return gp.buttons[1];
             }
         }
         return false;

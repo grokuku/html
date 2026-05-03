@@ -51,6 +51,11 @@
             loadingScreen.classList.add('hidden');
             gameContainer.classList.add('active');
 
+            // Ensure the retro font is loaded before showing menus
+            if (document.fonts && document.fonts.ready) {
+                await document.fonts.ready;
+            }
+
             // Show title menu
             B.Menus.show('title');
 
@@ -81,7 +86,7 @@
 
     // Auto-pause on window blur
     window.addEventListener('blur', () => {
-        if (B.Game.state === B.C.STATE.PLAYING) {
+        if (B.Game.state === B.C.STATE.PLAYING || B.Game.state === B.C.STATE.COUNTDOWN) {
             B.Game.togglePause();
         }
     });

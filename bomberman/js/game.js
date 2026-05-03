@@ -27,9 +27,16 @@ B.Game = {
     },
 
     createGameState(stageId, players, enemies, isBoss) {
+        const map = B.Data.generateMap(stageId, this.worldNum, this.stageNum);
+        // Clear tiles at enemy spawn points so they don't start inside soft blocks
+        (enemies || []).forEach(en => {
+            if (en.tileX >= 0 && en.tileX < B.C.COLS && en.tileY >= 0 && en.tileY < B.C.ROWS) {
+                map[en.tileY][en.tileX] = B.C.TILE_EMPTY;
+            }
+        });
         return {
             stage: stageId,
-            map: B.Data.generateMap(stageId, this.worldNum, this.stageNum),
+            map: map,
             players: players,
             bombs: [],
             explosions: [],
@@ -103,7 +110,8 @@ B.Game = {
 
         // Enemies
         const enemies = [];
-        const numEnemies = Math.min(2 + stageNum, 8);
+        const diffMult = { easy: 0.7, normal: 1.0, hard: 1.3 }[B.Menus.options.difficulty] || 1.0;
+        const numEnemies = Math.min(Math.floor((2 + stageNum) * diffMult), 10);
         for (let i = 0; i < numEnemies; i++) {
             const et = world.enemies[B.Utils.rand(0, world.enemies.length - 1)];
             let ex, ey, tries = 0;
@@ -112,7 +120,9 @@ B.Game = {
                 ey = B.Utils.rand(3, B.C.ROWS - 4);
                 tries++;
             } while (B.Utils.dist(ex, ey, positions[0].x, positions[0].y) < 4 && tries < 20);
-            enemies.push(new B.Entities.Enemy(et, ex, ey));
+            const enemy = new B.Entities.Enemy(et, ex, ey);
+            enemy.speed *= diffMult;
+            enemies.push(enemy);
         }
 
         this.current = this.createGameState(stageId, players, enemies, isBoss);
@@ -155,6 +165,7 @@ B.Game = {
         this.state = B.C.STATE.COUNTDOWN;
         this.countdownTimer = 3.9;
         this._lastCount = 4;
+        this.gameTime = this.timeLimit;
         if (this.current) this.current.frozen = true;
     },
 
@@ -186,7 +197,8 @@ B.Game = {
                 if (this.mode === 'normal') {
                     const aliveEnemies = gs.enemies.filter(e => e.alive).length;
                     const bossAlive = gs.boss && gs.boss.alive;
-                    if (aliveEnemies === 0 && !bossAlive) {
+                    const p1Alive = gs.players.find(p => p.id === 1 && p.alive);
+                    if (aliveEnemies === 0 && !bossAlive && p1Alive) {
                         this.advanceNormalStage();
                     } else {
                         this.showGameOver();
@@ -247,6 +259,10 @@ B.Game = {
 
         // Check win/lose
         this.checkGameEnd(dt, gs);
+        if (gs.gameOver) {
+            this.messages = this.messages.filter(m => { m.timer -= dt; return m.timer > 0; });
+            return;
+        }
 
         // Sudden death
         if (this.gameTime <= 30 && !gs.suddenDeath) {
@@ -277,10 +293,8 @@ B.Game = {
             gs.explosions.forEach(exp => {
                 if (exp.tileX === player.tileX && exp.tileY === player.tileY) {
                     if (player.hit(gs)) {
-                        // Find killer
-                        const recentDead = gs.bombs.find(b => !b.alive && b.ownerId >= 0);
-                        if (recentDead) {
-                            const killer = gs.players.find(p => p.id === recentDead.ownerId);
+                        if (exp.ownerId >= 0) {
+                            const killer = gs.players.find(p => p.id === exp.ownerId);
                             if (killer && killer.id !== player.id) {
                                 killer.kills++;
                                 killer.score += 200;

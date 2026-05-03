@@ -3,7 +3,7 @@
    Game loop, constants, utilities
    ======================================== */
 
-const B = B || {};
+var B = B || {};
 
 // ---- Constants ----
 B.C = {
@@ -55,10 +55,13 @@ B.Utils = {
     },
     oppositeDir: (dir) => [1, 0, 3, 2, 4][dir],
 
-    clone: (obj) => JSON.parse(JSON.stringify(obj)),
+    // Note: shallow clone via JSON; cannot handle functions, Dates, Maps, Sets or circular refs.
+    clone: (obj) => { try { return JSON.parse(JSON.stringify(obj)); } catch(e) { return obj; } },
 
     hexToRgb: (hex) => {
-        return { r: parseInt(hex.slice(1,3),16), g: parseInt(hex.slice(3,5),16), b: parseInt(hex.slice(5,7),16) };
+        const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
+        if (!result) return { r: 0, g: 0, b: 0 };
+        return { r: parseInt(result[1], 16), g: parseInt(result[2], 16), b: parseInt(result[3], 16) };
     },
     rgbToHex: (r, g, b) => '#' + [r,g,b].map(v => v.toString(16).padStart(2,'0')).join(''),
     shadeColor: (hex, factor) => {

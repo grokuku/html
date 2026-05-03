@@ -124,9 +124,9 @@ B.Entities = {
             const cx = this.tileX * T;
             const cy = this.tileY * T;
 
-            // Check if player is aligned with tile center
-            const aligned = Math.abs(this.subX - cx) <= moveAmt + 1 &&
-                            Math.abs(this.subY - cy) <= moveAmt + 1;
+            // Check if player is aligned with tile center (tight epsilon)
+            const aligned = Math.abs(this.subX - cx) < 1 &&
+                            Math.abs(this.subY - cy) < 1;
 
             if (aligned) {
                 // Snap to tile center
@@ -505,7 +505,7 @@ B.Entities = {
             }
 
             // Create center explosion
-            gs.explosions.push(new B.Entities.Explosion(this.tileX, this.tileY, 'center'));
+            gs.explosions.push(new B.Entities.Explosion(this.tileX, this.tileY, 'center', this.ownerId));
 
             // Directional explosions
             const dirs = [
@@ -525,7 +525,7 @@ B.Entities = {
                     if (tile === B.C.TILE_HARD) break;
 
                     if (tile === B.C.TILE_SOFT) {
-                        gs.explosions.push(new B.Entities.Explosion(tx, ty, dir.type));
+                        gs.explosions.push(new B.Entities.Explosion(tx, ty, dir.type, this.ownerId));
                         gs.map[ty][tx] = B.C.TILE_EMPTY;
                         this.spawnPowerUp(tx, ty, gs);
                         gs.particles.push({
@@ -539,12 +539,12 @@ B.Entities = {
                     // Chain reaction
                     const chainBomb = gs.bombs.find(b => b.alive && b.tileX === tx && b.tileY === ty);
                     if (chainBomb) {
-                        gs.explosions.push(new B.Entities.Explosion(tx, ty, dir.type));
+                        gs.explosions.push(new B.Entities.Explosion(tx, ty, dir.type, this.ownerId));
                         chainBomb.timer = Math.min(chainBomb.timer, 0.05);
                         continue;
                     }
 
-                    gs.explosions.push(new B.Entities.Explosion(tx, ty, dir.type));
+                    gs.explosions.push(new B.Entities.Explosion(tx, ty, dir.type, this.ownerId));
                 }
             });
 
@@ -568,10 +568,11 @@ B.Entities = {
 
     // ---- Explosion ----
     Explosion: class {
-        constructor(tileX, tileY, type) {
+        constructor(tileX, tileY, type, ownerId = -1) {
             this.tileX = tileX;
             this.tileY = tileY;
             this.type = type;
+            this.ownerId = ownerId;
             this.timer = 0;
             this.duration = B.C.EXPLOSION_DURATION;
             this.alive = true;
@@ -770,11 +771,14 @@ B.Entities = {
                     break;
                 case 'missiles':
                     [B.C.DIR.UP, B.C.DIR.DOWN, B.C.DIR.LEFT, B.C.DIR.RIGHT].forEach(d => {
-                        if (gs.map[this.tileY] && gs.map[this.tileY][this.tileX] === B.C.TILE_EMPTY) {
-                            const b = new B.Entities.Bomb(this.tileX, this.tileY, -1, 2);
+                        const dv = B.Utils.dirVec(d);
+                        const tx = this.tileX + dv.x;
+                        const ty = this.tileY + dv.y;
+                        if (tx >= 0 && tx < B.C.COLS && ty >= 0 && ty < B.C.ROWS && gs.map[ty][tx] === B.C.TILE_EMPTY) {
+                            const b = new B.Entities.Bomb(tx, ty, -1, 2);
                             b.timer = 1.5;
                             gs.bombs.push(b);
-                            gs.map[this.tileY][this.tileX] = B.C.TILE_BOMB;
+                            gs.map[ty][tx] = B.C.TILE_BOMB;
                         }
                     });
                     break;

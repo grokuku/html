@@ -16,45 +16,72 @@ B.Menus = {
     options: { sfx: true, music: true, scanlines: false, difficulty: 'normal' },
     _prevMenu: 'title',
     _scrollTimer: 0,
+    _menuRepeatActive: false,
     _lastConfirmTime: 0,
 
     init() {
         this.overlay = document.getElementById('menu-overlay');
+        // Event delegation for all menu clicks — attached once
+        this.overlay.addEventListener('click', (e) => {
+            const el = e.target.closest('[data-menu-idx]');
+            if (el) {
+                this.menuIndex = parseInt(el.dataset.menuIdx);
+                this.highlightItem();
+                B.Audio.playSfx('menuMove');
+                this.handleConfirm();
+            }
+        });
     },
 
     update(dt) {
         if (!this.currentMenu) return;
 
+        // Allow first press immediately; use timer only for auto-repeat
         this._scrollTimer += dt;
-        if (this._scrollTimer < 0.12) return;
-        this._scrollTimer = 0;
+        const canAct = this._scrollTimer >= 0.12;
 
-        // Keyboard navigation
-        if (B.Input.menuUp()) {
-            this.menuIndex = Math.max(0, this.menuIndex - 1);
-            this.highlightItem();
-            B.Audio.playSfx('menuMove');
+        const up    = B.Input.menuUp();
+        const down  = B.Input.menuDown();
+        const left  = B.Input.menuLeft();
+        const right = B.Input.menuRight();
+        const confirm = B.Input.menuConfirm();
+        const back  = B.Input.menuBack();
+
+        // Directional: act immediately, then throttle repeats
+        if (up || down || left || right) {
+            if (!canAct && this._menuRepeatActive) return;
+            this._menuRepeatActive = true;
+            if (canAct) this._scrollTimer = 0;
+            if (up) {
+                this.menuIndex = Math.max(0, this.menuIndex - 1);
+                this.highlightItem();
+                B.Audio.playSfx('menuMove');
+            }
+            if (down) {
+                this.menuIndex = Math.min(this.maxIndex, this.menuIndex + 1);
+                this.highlightItem();
+                B.Audio.playSfx('menuMove');
+            }
+            if (left) this.handleLeft();
+            if (right) this.handleRight();
+        } else {
+            this._menuRepeatActive = false;
         }
-        if (B.Input.menuDown()) {
-            this.menuIndex = Math.min(this.maxIndex, this.menuIndex + 1);
-            this.highlightItem();
-            B.Audio.playSfx('menuMove');
-        }
-        if (B.Input.menuLeft()) {
-            this.handleLeft();
-        }
-        if (B.Input.menuRight()) {
-            this.handleRight();
-        }
-        if (B.Input.menuConfirm()) {
+
+        // Confirm: debounce
+        if (confirm) {
             const now = performance.now();
             if (now - this._lastConfirmTime > 300) {
                 this._lastConfirmTime = now;
                 this.handleConfirm();
             }
         }
-        if (B.Input.menuBack()) {
-            this.handleBack();
+        if (back) {
+            const now = performance.now();
+            if (now - this._lastConfirmTime > 300) {
+                this._lastConfirmTime = now;
+                this.handleBack();
+            }
         }
     },
 
@@ -76,19 +103,6 @@ B.Menus = {
         }
 
         this.overlay.classList.add('active');
-
-        // Add click handlers for all interactive elements
-        requestAnimationFrame(() => {
-            this.overlay.querySelectorAll('[data-menu-idx]').forEach(el => {
-                el.addEventListener('click', () => {
-                    this.menuIndex = parseInt(el.dataset.menuIdx);
-                    this.highlightItem();
-                    B.Audio.playSfx('menuMove');
-                    // Small delay then confirm
-                    setTimeout(() => this.handleConfirm(), 150);
-                });
-            });
-        });
     },
 
     hide() {

@@ -389,6 +389,16 @@ body {
     color: var(--accent);
 }
 
+.option-row.selected {
+    background: rgba(255, 215, 0, 0.15);
+    border-left: 3px solid var(--gold);
+    padding-left: 27px;
+}
+
+.option-row.selected .option-label {
+    color: var(--gold);
+}
+
 /* Pause */
 .pause-screen {
     text-align: center;

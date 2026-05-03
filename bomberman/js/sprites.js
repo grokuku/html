@@ -384,9 +384,11 @@ B.Sprites = {
         for (let i = 0; i < 5; i++) {
             const angle = (i / 5) * Math.PI * 2 + progress * 3;
             const dist = s * (0.5 + progress * 0.5);
-            ctx.fillStyle = `rgba(255,${100 + Math.random() * 100},0,${alpha * 0.5})`;
+            const hue = 100 + ((i * 47) % 80);
+            const radius = 2 + ((i * 0.7) % 1.5);
+            ctx.fillStyle = `rgba(255,${hue},0,${alpha * 0.5})`;
             ctx.beginPath();
-            ctx.arc(Math.cos(angle) * dist, Math.sin(angle) * dist, 2 + Math.random() * 2, 0, Math.PI * 2);
+            ctx.arc(Math.cos(angle) * dist, Math.sin(angle) * dist, radius, 0, Math.PI * 2);
             ctx.fill();
         }
 

@@ -452,7 +452,7 @@ B.Data = {
         {
             name: 'Monde 5: Espace',
             desc: 'Confrontation finale',
-            stations: 8, theme: 'space',
+            stages: 8, theme: 'space',
             enemies: ['ovape', 'pompoi', 'bakuda', 'pass', 'pontan'],
             boss: 'darkBomber'
         }
@@ -471,17 +471,27 @@ B.Data = {
                 } else if (r % 2 === 0 && c % 2 === 0) {
                     map[r][c] = B.C.TILE_HARD;
                 } else if (B.Utils.chance(stage.softBlockRate)) {
-                    // Don't place blocks in starting corners
-                    const isCorner = (r <= 2 && c <= 2) ||
-                                     (r <= 2 && c >= B.C.COLS - 3) ||
-                                     (r >= B.C.ROWS - 3 && c <= 2) ||
-                                     (r >= B.C.ROWS - 3 && c >= B.C.COLS - 3);
-                    if (!isCorner) {
-                        map[r][c] = B.C.TILE_SOFT;
-                    }
+                    map[r][c] = B.C.TILE_SOFT;
                 }
             }
         }
+
+        // Clear space around all starting positions so no player spawns inside blocks
+        B.Data.startingPositions.forEach(pos => {
+            if (pos.x >= 0 && pos.x < B.C.COLS && pos.y >= 0 && pos.y < B.C.ROWS) {
+                map[pos.y][pos.x] = B.C.TILE_EMPTY;
+                // Also clear adjacent tiles for breathing room
+                [{x:0,y:-1},{x:0,y:1},{x:-1,y:0},{x:1,y:0}].forEach(dv => {
+                    const ax = pos.x + dv.x;
+                    const ay = pos.y + dv.y;
+                    if (ax > 0 && ax < B.C.COLS - 1 && ay > 0 && ay < B.C.ROWS - 1) {
+                        if (map[ay][ax] === B.C.TILE_SOFT && !(ax % 2 === 0 && ay % 2 === 0)) {
+                            map[ay][ax] = B.C.TILE_EMPTY;
+                        }
+                    }
+                });
+            }
+        });
 
         return map;
     },
@@ -567,7 +577,7 @@ B.Data = {
                 const hardBlocks = [];
                 for (let r = 1; r < B.C.ROWS - 1; r++) {
                     for (let c = 1; c < B.C.COLS - 1; c++) {
-                        if (gameState.map[r][c] === B.C.TILE_HARD && r % 2 !== 0 || c % 2 !== 0) {
+                        if (gameState.map[r][c] === B.C.TILE_HARD && (r % 2 !== 0 || c % 2 !== 0)) {
                             hardBlocks.push({x: c, y: r});
                         }
                     }
