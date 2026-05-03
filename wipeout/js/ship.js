@@ -14,15 +14,13 @@ export class Ship {
         this.position = new THREE.Vector3(0, 5, 0);
         this.velocity = new THREE.Vector3(0, 0, 0);
         this.speed = 0;
-        this.rotation = 0; // Y rotation (yaw)
-        this.roll = 0; // Z rotation
-        this.pitch = 0; // X rotation
+        this.rotation = 0;
+        this.roll = 0;
+        this.pitch = 0;
 
         // Track following
         this.trackT = 0;
         this.trackIdx = 0;
-        this.lateralOffset = 0;
-        this.prevTrackT = 0;
         this.prevTrackIdx = 0;
         this.checkpointT = 0;
 
@@ -32,22 +30,16 @@ export class Ship {
         this.boostTimer = 0;
         this.currentWeapon = null;
         this.isBoosting = false;
-        this.weaponsUsed = 0;
-
-        // Pickup event flags
-        this.justPickedUpBoost = false;
-        this.justPickedUpWeapon = false;
 
         // Race state
         this.lap = 0;
         this.lapTimes = [];
         this.totalTime = 0;
         this.finished = false;
-        this.racePosition = 0;
         this.lapJustCompleted = false;
         this.raceJustFinished = false;
 
-        // Input state (set by player controls or AI)
+        // Input
         this.inputAccel = 0;
         this.inputBrake = 0;
         this.inputSteer = 0;
@@ -56,9 +48,11 @@ export class Ship {
         this.inputShield = false;
 
         this.steerInput = 0;
+        this.weaponsUsed = 0;
+        this.justPickedUpBoost = false;
+        this.justPickedUpWeapon = false;
 
-        // Trail
-        this.trailTimer = 0;
+        this.shieldTimer = 0;
 
         this.createShipMesh();
         scene.add(this.shipGroup);
@@ -66,136 +60,203 @@ export class Ship {
 
     createShipMesh() {
         const color = new THREE.Color(this.color);
+        const dark = color.clone().multiplyScalar(0.4);
+        const bright = color.clone().lerp(new THREE.Color(0xffffff), 0.3);
 
-        // === Main body using combined geometries ===
-
-        // Fuselage - sleek elongated shape
-        const fuselageGeo = new THREE.ConeGeometry(1.2, 5, 4);
-        fuselageGeo.rotateX(Math.PI / 2);
-        const fuselageMat = new THREE.MeshStandardMaterial({
-            color: color,
-            metalness: 0.7,
-            roughness: 0.3,
-            flatShading: true,
-        });
-        const fuselage = new THREE.Mesh(fuselageGeo, fuselageMat);
-        fuselage.position.set(0, 0.4, -0.5);
-        fuselage.scale.set(0.7, 0.35, 1);
         this.shipGroup = new THREE.Group();
-        this.shipGroup.add(fuselage);
 
-        // Body top
-        const bodyGeo = new THREE.BoxGeometry(1.8, 0.3, 3.5);
-        const body = new THREE.Mesh(bodyGeo, fuselageMat);
-        body.position.set(0, 0.4, 0.3);
-        this.shipGroup.add(body);
+        // === HULL: Sleek aerodynamic body ===
+        const hullShape = new THREE.Shape();
+        hullShape.moveTo(0, -1.8);
+        hullShape.quadraticCurveTo(1.0, -1.5, 1.4, -0.5);
+        hullShape.lineTo(1.2, 0.5);
+        hullShape.quadraticCurveTo(0.8, 0.8, 0, 0.9);
+        hullShape.quadraticCurveTo(-0.8, 0.8, -1.2, 0.5);
+        hullShape.lineTo(-1.4, -0.5);
+        hullShape.quadraticCurveTo(-1.0, -1.5, 0, -1.8);
 
-        // Cockpit
-        const cockpitGeo = new THREE.SphereGeometry(0.35, 6, 4);
+        const extrudeSettings = {
+            steps: 1,
+            depth: 5,
+            bevelEnabled: true,
+            bevelThickness: 0.15,
+            bevelSize: 0.1,
+            bevelSegments: 3,
+        };
+
+        const hullGeo = new THREE.ExtrudeGeometry(hullShape, extrudeSettings);
+        hullGeo.rotateX(Math.PI / 2);
+        hullGeo.rotateY(Math.PI);
+        hullGeo.translate(0, 0.3, -2.5);
+        hullGeo.scale(0.8, 0.35, 1);
+
+        const hullMat = new THREE.MeshStandardMaterial({
+            color: color,
+            metalness: 0.75,
+            roughness: 0.2,
+            flatShading: false,
+            envMapIntensity: 1.0,
+        });
+
+        const hull = new THREE.Mesh(hullGeo, hullMat);
+        hull.castShadow = true;
+        this.shipGroup.add(hull);
+
+        // === COCKPIT: Smooth canopy ===
+        const cockpitGeo = new THREE.SphereGeometry(0.5, 12, 8, 0, Math.PI * 2, 0, Math.PI / 2);
         const cockpitMat = new THREE.MeshStandardMaterial({
-            color: 0x112244,
-            metalness: 0.9,
-            roughness: 0.1,
+            color: 0x0a1a3a,
+            metalness: 0.95,
+            roughness: 0.05,
+            transparent: true,
+            opacity: 0.85,
         });
         const cockpit = new THREE.Mesh(cockpitGeo, cockpitMat);
-        cockpit.position.set(0, 0.7, -0.8);
-        cockpit.scale.set(1, 0.7, 1.5);
+        cockpit.position.set(0, 0.65, -1.2);
+        cockpit.scale.set(0.7, 0.6, 1.8);
         this.shipGroup.add(cockpit);
 
-        // Left wing
-        const wingGeo = new THREE.BoxGeometry(2.5, 0.08, 1.5);
+        // === WINGS: Slept-back angular wings ===
+        const wingGeo = this.createWingGeometry();
         const wingMat = new THREE.MeshStandardMaterial({
-            color: color.clone().multiplyScalar(0.7),
+            color: dark,
             metalness: 0.8,
-            roughness: 0.2,
+            roughness: 0.25,
+            flatShading: false,
         });
+
         const leftWing = new THREE.Mesh(wingGeo, wingMat);
-        leftWing.position.set(-1.8, 0.35, 0.5);
-        leftWing.rotation.z = 0.05;
+        leftWing.position.set(-1.2, 0.25, 0.3);
+        leftWing.rotation.z = 0.08;
         this.shipGroup.add(leftWing);
 
-        // Right wing
-        const rightWing = new THREE.Mesh(wingGeo, wingMat);
-        rightWing.position.set(1.8, 0.35, 0.5);
-        rightWing.rotation.z = -0.05;
+        const rightWingGeo = this.createWingGeometry(true);
+        const rightWing = new THREE.Mesh(rightWingGeo, wingMat);
+        rightWing.position.set(1.2, 0.25, 0.3);
+        rightWing.rotation.z = -0.08;
         this.shipGroup.add(rightWing);
 
-        // Canards (front small wings)
-        const canardGeo = new THREE.BoxGeometry(1.8, 0.06, 0.6);
-        const canard = new THREE.Mesh(canardGeo, wingMat);
-        canard.position.set(0, 0.42, -1.5);
-        this.shipGroup.add(canard);
+        // === ENGINE PODS: Cylindrical nacelles ===
+        const podGeo = new THREE.CylinderGeometry(0.25, 0.3, 2.2, 8);
+        podGeo.rotateX(Math.PI / 2);
 
-        // Left engine pod
-        const podGeo = new THREE.BoxGeometry(0.5, 0.4, 2);
         const podMat = new THREE.MeshStandardMaterial({
-            color: 0x222233,
+            color: 0x1a1a2a,
             metalness: 0.9,
             roughness: 0.1,
         });
+
         const leftPod = new THREE.Mesh(podGeo, podMat);
-        leftPod.position.set(-2.2, 0.25, 1.2);
+        leftPod.position.set(-2.0, 0.25, 1.0);
         this.shipGroup.add(leftPod);
 
-        // Right engine pod
         const rightPod = new THREE.Mesh(podGeo, podMat);
-        rightPod.position.set(2.2, 0.25, 1.2);
+        rightPod.position.set(2.0, 0.25, 1.0);
         this.shipGroup.add(rightPod);
 
-        // Engine intakes (front of pods)
-        const intakeGeo = new THREE.CircleGeometry(0.25, 6);
-        const intakeMat = new THREE.MeshBasicMaterial({ color: 0x111111 });
-        const leftIntake = new THREE.Mesh(intakeGeo, intakeMat);
-        leftIntake.position.set(-2.2, 0.25, 0.2);
-        leftIntake.rotation.y = Math.PI;
-        this.shipGroup.add(leftIntake);
-
-        const rightIntake = new THREE.Mesh(intakeGeo, intakeMat);
-        rightIntake.position.set(2.2, 0.25, 0.2);
-        rightIntake.rotation.y = Math.PI;
-        this.shipGroup.add(rightIntake);
-
-        // Engine glow exhausts
-        const glowGeo = new THREE.SphereGeometry(0.35, 6, 6);
-        const glowMat = new THREE.MeshBasicMaterial({
-            color: this.color,
-            transparent: true,
-            opacity: 0.7,
+        // Pod caps (front)
+        const capGeo = new THREE.SphereGeometry(0.3, 8, 6, 0, Math.PI * 2, 0, Math.PI / 2);
+        capGeo.rotateX(-Math.PI / 2);
+        const capMat = new THREE.MeshStandardMaterial({
+            color: dark,
+            metalness: 0.9,
+            roughness: 0.1,
         });
+        const leftCap = new THREE.Mesh(capGeo, capMat);
+        leftCap.position.set(-2.0, 0.25, -0.05);
+        this.shipGroup.add(leftCap);
 
-        this.engineGlowLeft = new THREE.Mesh(glowGeo, glowMat.clone());
-        this.engineGlowLeft.position.set(-2.2, 0.25, 2.3);
-        this.shipGroup.add(this.engineGlowLeft);
+        const rightCap = new THREE.Mesh(capGeo, capMat);
+        rightCap.position.set(2.0, 0.25, -0.05);
+        this.shipGroup.add(rightCap);
 
-        this.engineGlowRight = new THREE.Mesh(glowGeo, glowMat.clone());
-        this.engineGlowRight.position.set(2.2, 0.25, 2.3);
-        this.shipGroup.add(this.engineGlowRight);
+        // === ENGINE GLOW: Bright exhaust ===
+        const glowGeo = new THREE.SphereGeometry(0.35, 8, 8);
 
-        // Center engine
-        const centerGlow = new THREE.Mesh(
-            new THREE.SphereGeometry(0.25, 6, 6),
-            glowMat.clone()
-        );
-        centerGlow.position.set(0, 0.3, 2);
+        const leftGlow = new THREE.Mesh(glowGeo, new THREE.MeshBasicMaterial({
+            color: color, transparent: true, opacity: 0.8
+        }));
+        leftGlow.position.set(-2.0, 0.25, 2.2);
+        this.shipGroup.add(leftGlow);
+        this.engineGlowLeft = leftGlow;
+
+        const rightGlow = new THREE.Mesh(glowGeo.clone(), new THREE.MeshBasicMaterial({
+            color: color, transparent: true, opacity: 0.8
+        }));
+        rightGlow.position.set(2.0, 0.25, 2.2);
+        this.shipGroup.add(rightGlow);
+        this.engineGlowRight = rightGlow;
+
+        // Center glow
+        const centerGlow = new THREE.Mesh(glowGeo.clone(), new THREE.MeshBasicMaterial({
+            color: color, transparent: true, opacity: 0.6
+        }));
+        centerGlow.position.set(0, 0.3, 2.2);
+        centerGlow.scale.set(0.7, 0.7, 0.7);
         this.shipGroup.add(centerGlow);
         this.centerGlow = centerGlow;
 
-        // Point light from engines
-        this.engineLight = new THREE.PointLight(this.color, 3, 20);
-        this.engineLight.position.set(0, 0.3, 2.5);
+        // === ENGINE LIGHTS ===
+        this.engineLight = new THREE.PointLight(color, 3, 25);
+        this.engineLight.position.set(0, 0.3, 3);
         this.shipGroup.add(this.engineLight);
 
-        // Shield sphere (initially hidden)
-        const shieldGeo = new THREE.SphereGeometry(3.5, 16, 12);
+        // === FIN / TAIL ===
+        const finGeo = new THREE.BoxGeometry(0.06, 1.0, 0.8);
+        const finMat = new THREE.MeshStandardMaterial({
+            color: color, metalness: 0.7, roughness: 0.3
+        });
+        const fin = new THREE.Mesh(finGeo, finMat);
+        fin.position.set(0, 0.8, 2.0);
+        this.shipGroup.add(fin);
+
+        // === STRIPES / ACCENTS ===
+        // Side accent strips (glowing team color lines)
+        const stripGeo = new THREE.BoxGeometry(0.05, 0.08, 3.5);
+        const stripMat = new THREE.MeshBasicMaterial({ color: bright });
+        const leftStrip = new THREE.Mesh(stripGeo, stripMat);
+        leftStrip.position.set(-0.95, 0.42, 0.2);
+        this.shipGroup.add(leftStrip);
+        const rightStrip = new THREE.Mesh(stripGeo, stripMat.clone());
+        rightStrip.position.set(0.95, 0.42, 0.2);
+        this.shipGroup.add(rightStrip);
+
+        // === SHIELD VISUAL ===
+        const shieldGeo = new THREE.SphereGeometry(3.8, 16, 12);
         const shieldMat = new THREE.MeshBasicMaterial({
-            color: 0x00ffaa,
-            transparent: true,
-            opacity: 0,
-            wireframe: true,
+            color: 0x00ffaa, transparent: true, opacity: 0, wireframe: true,
         });
         this.shieldMesh = new THREE.Mesh(shieldGeo, shieldMat);
         this.shipGroup.add(this.shieldMesh);
-        this.shieldTimer = 0;
+
+        // Store references
+        this.shipGroup.traverse(c => {
+            if (c.isMesh) c.castShadow = true;
+        });
+    }
+
+    createWingGeometry(mirrored = false) {
+        // Create a swept wing shape
+        const shape = new THREE.Shape();
+        shape.moveTo(0, 0);
+        shape.lineTo(-2.2, 0.3);   // outer edge sweep back
+        shape.lineTo(-2.0, 0.6);   // outer top
+        shape.lineTo(-0.5, 0.5);   // inner top
+        shape.lineTo(0, 0.2);      // trailing edge inner
+        shape.lineTo(0, 0);        // close
+
+        const geo = new THREE.ExtrudeGeometry(shape, {
+            steps: 1, depth: 0.06,
+            bevelEnabled: true, bevelThickness: 0.02,
+            bevelSize: 0.02, bevelSegments: 1,
+        });
+
+        if (mirrored) {
+            geo.scale(-1, 1, 1);
+        }
+
+        geo.rotateX(Math.PI / 2);
+        return geo;
     }
 
     reset(trackStart, trackTangent) {
@@ -205,10 +266,8 @@ export class Ship {
         this.rotation = Math.atan2(trackTangent.x, trackTangent.z);
         this.roll = 0;
         this.pitch = 0;
-        this.lateralOffset = 0;
         this.trackT = 0;
         this.trackIdx = 0;
-        this.prevTrackT = 0;
         this.prevTrackIdx = 0;
         this.checkpointT = 0;
         this.shield = CONFIG.SHIELD_MAX;
@@ -227,50 +286,53 @@ export class Ship {
         this.inputSteer = 0;
         this.steerInput = 0;
         this.weaponsUsed = 0;
-
+        this.justPickedUpBoost = false;
+        this.justPickedUpWeapon = false;
+        this.shieldTimer = 0;
         this.shipGroup.position.copy(this.position);
         this.shipGroup.rotation.set(0, this.rotation, 0);
     }
 
     update(dt, track, allShips) {
+        try {
+            this._updateInternal(dt, track, allShips);
+        } catch (e) {
+            console.warn('Ship update error:', e);
+        }
+    }
+
+    _updateInternal(dt, track, allShips) {
         if (this.finished) {
-            // Still update position but very slow
-            this.speed *= 0.95;
-            this.position.add(
-                new THREE.Vector3(Math.sin(this.rotation), 0, Math.cos(this.rotation))
-                    .multiplyScalar(this.speed * dt)
-            );
-            this.shipGroup.position.copy(this.position);
+            this.speed *= Math.pow(0.95, dt * 60);
+            const fwd = new THREE.Vector3(Math.sin(this.rotation), 0, Math.cos(this.rotation));
+            this.position.add(fwd.multiplyScalar(this.speed * dt));
             this.updateTransform();
             return;
         }
 
-        // Save previous track index for lap detection
         this.prevTrackIdx = this.trackIdx;
-        this.prevTrackT = this.trackT;
         this.lapJustCompleted = false;
         this.raceJustFinished = false;
 
         // Find nearest track point
         this.trackIdx = track.getNearestFrameIndex(this.position, this.trackIdx);
+        if (!track.framePoints || track.framePoints.length === 0) return;
         const frame = track.framePoints[Math.min(this.trackIdx, track.framePoints.length - 1)];
+        if (!frame) return;
+
         this.trackT = this.trackIdx / CONFIG.TRACK_SEGMENTS;
 
         // === Lap Detection ===
-        // Ship must pass through most of the track then cross start line
         if (this.prevTrackIdx > 20 && this.trackIdx <= 5 && this.checkpointT > 0.85) {
             this.lap++;
             this.lapTimes.push(this.totalTime);
             this.checkpointT = 0;
             this.lapJustCompleted = true;
-
             if (this.lap >= CONFIG.NUM_LAPS) {
                 this.finished = true;
                 this.raceJustFinished = true;
             }
         }
-
-        // Update checkpoint
         if (this.trackT > 0.85) {
             this.checkpointT = Math.max(this.checkpointT, this.trackT);
         }
@@ -279,92 +341,60 @@ export class Ship {
         const maxSpeed = CONFIG.MAX_SPEED;
         const effectiveMaxSpeed = this.isBoosting ? maxSpeed * CONFIG.BOOST_SPEED_MULT : maxSpeed;
 
-        // Forward acceleration
-        if (this.inputAccel) {
-            this.speed += CONFIG.ACCELERATION * dt;
-        }
-        if (this.inputBrake) {
-            this.speed -= CONFIG.BRAKE_FORCE * dt;
-        }
+        if (this.inputAccel) this.speed += CONFIG.ACCELERATION * dt;
+        if (this.inputBrake) this.speed -= CONFIG.BRAKE_FORCE * dt;
 
-        // Boost handling
         if (this.boostTimer > 0) {
             this.boostTimer -= dt;
             this.isBoosting = true;
-            // Extra acceleration during boost
             this.speed += CONFIG.ACCELERATION * 0.5 * dt;
         } else {
             this.isBoosting = false;
         }
 
-        // Framerate-independent drag
         this.speed *= Math.pow(CONFIG.DRAG, dt * 60);
-
-        // Clamp speed
         this.speed = Math.max(0, Math.min(effectiveMaxSpeed, this.speed));
 
-        // Steering - more responsive at higher speeds
+        // Steering
         const steerFactor = 1 + (this.speed / maxSpeed) * 0.5;
         this.steerInput = this.inputSteer;
         this.rotation += this.steerInput * CONFIG.STEER_SPEED * steerFactor * dt;
 
-        // Calculate forward direction
-        const forward = new THREE.Vector3(
-            Math.sin(this.rotation),
-            0,
-            Math.cos(this.rotation)
-        );
-
-        // Calculate velocity
+        // Forward direction
+        const forward = new THREE.Vector3(Math.sin(this.rotation), 0, Math.cos(this.rotation));
         this.velocity.copy(forward).multiplyScalar(this.speed);
 
-        // Subtle lateral drift from steering
-        const right = new THREE.Vector3(
-            Math.cos(this.rotation),
-            0,
-            -Math.sin(this.rotation)
-        );
-        const lateralDrift = this.steerInput * this.speed * 0.1;
-        this.velocity.add(right.multiplyScalar(lateralDrift * dt));
+        // Lateral drift
+        const right = new THREE.Vector3(Math.cos(this.rotation), 0, -Math.sin(this.rotation));
+        this.velocity.add(right.clone().multiplyScalar(this.steerInput * this.speed * 0.1 * dt));
 
-        // Apply velocity
         this.position.add(this.velocity.clone().multiplyScalar(dt));
 
-        // === Track Following / Hovering ===
-        const trackPoint = frame.point.clone();
-        const trackNormal = frame.normal.clone();
-        const trackTangent = frame.tangent.clone();
-        const trackBinormal = frame.binormal.clone();
+        // === Track Following ===
+        const trackPoint = frame.point;
+        const trackNormal = frame.normal;
+        const trackBinormal = frame.binormal;
+        const trackTangent = frame.tangent;
 
-        // Target Y: hover above track surface
-        const targetY = trackPoint.y + CONFIG.HOVER_HEIGHT;
-
-        // Add hover oscillation
-        const hoverOscillation = Math.sin(performance.now() * 0.005 + this.position.x) * 0.1;
-        const finalTargetY = targetY + hoverOscillation;
-
-        // Spring force to hover
-        const dy = finalTargetY - this.position.y;
+        // Hover
+        const hoverY = trackPoint.y + CONFIG.HOVER_HEIGHT +
+            Math.sin(performance.now() * 0.005 + (this.isPlayer ? 0 : this.position.x)) * 0.08;
+        const dy = hoverY - this.position.y;
         this.position.y += dy * Math.min(1, CONFIG.HOVER_SPRING * dt);
 
-        // === Track Magnetism ===
-        // Gently pull ship toward track center to prevent flying off
+        // Track magnetism
         const offsetFromCenter = this.position.clone().sub(trackPoint);
-        const lateralProjection = offsetFromCenter.dot(trackBinormal);
+        const lateralProj = offsetFromCenter.dot(trackBinormal);
+        const pullStrength = 0.3 + Math.abs(lateralProj) / (CONFIG.TRACK_WIDTH / 2) * 0.5;
+        this.position.add(trackBinormal.clone().multiplyScalar(-lateralProj * pullStrength * dt));
 
-        // Soft center pull (stronger at edges)
-        const pullStrength = 0.3 + Math.abs(lateralProjection) / (CONFIG.TRACK_WIDTH / 2) * 0.5;
-        this.position.add(
-            trackBinormal.clone().multiplyScalar(-lateralProjection * pullStrength * dt)
-        );
+        // Roll & Pitch
+        const targetRoll = -this.steerInput * 0.4 * Math.min(1, this.speed / 100);
+        this.roll += (targetRoll - this.roll) * Math.min(1, 6 * dt);
 
-        // === Roll and Pitch ===
-        const targetRoll = -this.steerInput * 0.4 * Math.min(1, this.speed / 200);
-        this.roll = THREE.MathUtils.lerp(this.roll, targetRoll, 6 * dt);
-
-        const trackSlopeAngle = -Math.asin(THREE.MathUtils.clamp(trackTangent.y, -1, 1));
-        const targetPitch = trackSlopeAngle * 0.5;
-        this.pitch = THREE.MathUtils.lerp(this.pitch, targetPitch, 4 * dt);
+        const slopeAngle = -Math.asin(THREE.MathUtils.clamp(trackTangent.y, -1, 1));
+        const targetPitch = slopeAngle * 0.5;
+        this.pitch += (targetPitch - this.pitch) * Math.min(1, 4 * dt);
 
         // === Wall Collision ===
         const wallOffset = this.position.clone().sub(trackPoint);
@@ -373,97 +403,72 @@ export class Ship {
 
         if (Math.abs(lateralWall) > halfW) {
             const pushSign = Math.sign(lateralWall);
-            const wallDist = Math.abs(lateralWall) - halfW;
-            this.position.add(
-                trackBinormal.clone().multiplyScalar(-pushSign * wallDist * 0.8)
-            );
-            this.speed *= Math.pow(0.95, dt * 60); // Wall friction
+            const excess = Math.abs(lateralWall) - halfW;
+            this.position.add(trackBinormal.clone().multiplyScalar(-pushSign * excess * 0.8));
+            this.speed *= Math.pow(0.95, dt * 60);
         }
 
-        // === Off-track recovery ===
-        const distanceToTrack = this.position.distanceTo(trackPoint);
-        if (distanceToTrack > 15) {
-            // Reset to track surface
+        // Off-track recovery
+        const distToTrack = this.position.distanceTo(trackPoint);
+        if (distToTrack > 20) {
             this.position.copy(trackPoint);
             this.position.y += CONFIG.HOVER_HEIGHT;
             this.speed *= 0.3;
         }
 
         // === Pad Pickup ===
+        this.justPickedUpBoost = false;
+        this.justPickedUpWeapon = false;
         const padResults = track.checkPads(this.position, this.trackT, !!this.currentWeapon);
         if (padResults.boost) {
             this.boostEnergy = 1;
             this.justPickedUpBoost = true;
-        } else {
-            this.justPickedUpBoost = false;
         }
         if (padResults.weapon) {
             this.currentWeapon = CONFIG.WEAPONS[Math.floor(Math.random() * CONFIG.WEAPONS.length)];
             this.justPickedUpWeapon = true;
-        } else {
-            this.justPickedUpWeapon = false;
         }
 
-        // === Shield Regen ===
+        // Shield regen
         this.shield = Math.min(CONFIG.SHIELD_MAX, this.shield + CONFIG.SHIELD_REGEN * dt);
 
         // === Ship Collision ===
         if (allShips) {
-            allShips.forEach(other => {
-                if (other === this) return;
-                const dist = this.position.distanceTo(other.position);
-                if (dist < 3.5 && dist > 0.1) {
-                    const pushDir = this.position.clone().sub(other.position).normalize();
-                    const overlap = 3.5 - dist;
-                    this.position.add(pushDir.clone().multiplyScalar(overlap * 0.5));
+            for (const other of allShips) {
+                if (other === this) continue;
+                const d = this.position.distanceTo(other.position);
+                if (d < 3.5 && d > 0.1) {
+                    const push = this.position.clone().sub(other.position).normalize();
+                    this.position.add(push.multiplyScalar((3.5 - d) * 0.5));
                     this.speed *= 0.98;
                 }
-            });
+            }
         }
 
-        // === Timer ===
+        // Timer
         this.totalTime += dt;
 
         // === Update Visuals ===
         this.updateTransform();
 
-        // Engine glow intensity
+        // Engine glow
         const speedRatio = this.speed / CONFIG.MAX_SPEED;
-        const glowIntensity = 0.3 + speedRatio * 0.7;
-        const glowScale = 0.4 + speedRatio * 0.8;
+        const glowI = 0.3 + speedRatio * 0.7;
+        const glowS = 0.4 + speedRatio * 0.8;
 
         [this.engineGlowLeft, this.engineGlowRight, this.centerGlow].forEach(g => {
-            if (g) {
-                g.material.opacity = glowIntensity;
-                g.scale.setScalar(glowScale);
-            }
+            if (!g) return;
+            g.material.opacity = glowI;
+            g.scale.setScalar(glowS);
+            g.material.color.setHex(this.isBoosting ? 0x00ff88 : this.color);
         });
 
-        if (this.isBoosting) {
-            [this.engineGlowLeft, this.engineGlowRight, this.centerGlow].forEach(g => {
-                if (g) g.material.color.setHex(0x00ff88);
-            });
-            this.engineLight.color.setHex(0x00ff88);
-            this.engineLight.intensity = 6 + Math.sin(performance.now() * 0.03) * 2;
-        } else {
-            [this.engineGlowLeft, this.engineGlowRight, this.centerGlow].forEach(g => {
-                if (g) g.material.color.setHex(this.color);
-            });
-            this.engineLight.color.setHex(this.color);
-            this.engineLight.intensity = 2 + speedRatio * 3;
-        }
+        this.engineLight.color.setHex(this.isBoosting ? 0x00ff88 : this.color);
+        this.engineLight.intensity = this.isBoosting
+            ? 6 + Math.sin(performance.now() * 0.03) * 2
+            : 2 + speedRatio * 3;
 
         // Shield visual
-        this.updateShieldVisual(dt);
-    }
-
-    updateTransform() {
-        this.shipGroup.position.copy(this.position);
-        const euler = new THREE.Euler(this.pitch, this.rotation, this.roll, 'YXZ');
-        this.shipGroup.quaternion.setFromEuler(euler);
-    }
-
-    updateShieldVisual(dt) {
         if (this.shieldTimer > 0) {
             this.shieldTimer -= dt;
             this.shieldMesh.material.opacity = this.shieldTimer * 0.6;
@@ -472,19 +477,21 @@ export class Ship {
         }
     }
 
+    updateTransform() {
+        this.shipGroup.position.copy(this.position);
+        const euler = new THREE.Euler(this.pitch, this.rotation, this.roll, 'YXZ');
+        this.shipGroup.quaternion.setFromEuler(euler);
+    }
+
     takeDamage(amount) {
         this.shield -= amount;
         if (this.shield < 0) this.shield = 0;
         if (this.isPlayer) {
-            this.showDamageFlash();
+            const flash = document.createElement('div');
+            flash.className = 'damage-flash';
+            document.body.appendChild(flash);
+            setTimeout(() => flash.remove(), 300);
         }
-    }
-
-    showDamageFlash() {
-        const flash = document.createElement('div');
-        flash.className = 'damage-flash';
-        document.body.appendChild(flash);
-        setTimeout(() => flash.remove(), 300);
     }
 
     showShield() {
@@ -494,15 +501,11 @@ export class Ship {
 
     destroy() {
         this.scene.remove(this.shipGroup);
-        // Dispose geometries/materials
         this.shipGroup.traverse(child => {
             if (child.geometry) child.geometry.dispose();
             if (child.material) {
-                if (Array.isArray(child.material)) {
-                    child.material.forEach(m => m.dispose());
-                } else {
-                    child.material.dispose();
-                }
+                if (Array.isArray(child.material)) child.material.forEach(m => m.dispose());
+                else child.material.dispose();
             }
         });
     }
