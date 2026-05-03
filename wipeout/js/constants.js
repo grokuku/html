@@ -79,3 +79,9 @@ export const CONFIG = {
     WEAPON_PAD_COLOR: 0xff8800,
     WALL_COLOR: 0x1a1a3a,
 };
+
+export const SETTINGS = {
+    difficulty: 'medium',
+    musicVolume: 0.3,
+    sfxVolume: 0.5,
+};
