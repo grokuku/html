@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bomberman SS — Saturn Remake</title>
+    <link rel="stylesheet" href="css/style.css">
+    <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
+</head>
+<body>
+    <div id="loading-screen">
+        <div class="loading-content">
+            <h1>BOMBERMAN SS</h1>
+            <div class="loading-bar-container">
+                <div class="loading-bar" id="loading-bar"></div>
+            </div>
+            <p id="loading-text">Chargement...</p>
+        </div>
+    </div>
+
+    <div id="game-container">
+        <canvas id="game-canvas"></canvas>
+        <div id="hud"></div>
+        <div id="menu-overlay"></div>
+        <div id="scanlines" class="scanlines"></div>
+    </div>
+
+    <!-- Core -->
+    <script src="js/engine.js"></script>
+    <script src="js/input.js"></script>
+    <script src="js/audio.js"></script>
+
+    <!-- Data -->
+    <script src="js/sprites.js"></script>
+    <script src="js/data.js"></script>
+
+    <!-- Entities -->
+    <script src="js/entities.js"></script>
+
+    <!-- Gameplay -->
+    <script src="js/game.js"></script>
+    <script src="js/renderer.js"></script>
+
+    <!-- UI -->
+    <script src="js/menus.js"></script>
+
+    <!-- Entry -->
+    <script src="js/main.js"></script>
+</body>
+</html>
