@@ -449,7 +449,7 @@ export class Ship {
         }
 
         // Timer
-        this.totalTime += dt;
+        this.totalTime += safeDt;
 
         // === Update Visuals ===
         this.updateTransform();

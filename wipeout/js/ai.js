@@ -1,4 +1,5 @@
 // AI Controller for opponent ships
+import * as THREE from 'three';
 import { CONFIG } from './constants.js';
 
 export class AIController {

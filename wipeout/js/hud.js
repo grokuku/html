@@ -13,11 +13,11 @@ export class HUD {
         this.weaponName = document.getElementById('hudWeaponName');
         this.weaponEl = document.getElementById('hudWeapon');
         this.minimapCanvas = document.getElementById('minimap');
-        this.minimapCtx = this.minimapCanvas.getContext('2d');
+        this.minimapCtx = this.minimapCanvas ? this.minimapCanvas.getContext('2d') : null;
     }
 
     update(player, allShips, track) {
-        if (!player) return;
+        if (!player || !this.speedEl) return;
 
         // Speed (display in KM/H)
         const speedKmh = Math.round(player.speed * 3.6); // Convert to km/h feel
