@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WIPEOUT - Clone HTML5</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+    <div id="loadingScreen" class="loading-overlay">
+        <div class="loading-container">
+            <h2 class="loading-title">WIPEOUT</h2>
+            <p class="loading-text">Chargement...</p>
+            <div class="loading-bar"><div class="loading-progress" id="loadingProgress"></div></div>
+        </div>
+    </div>
+    
+    <canvas id="gameCanvas"></canvas>
+
+    <!-- Menu principal -->
+    <div id="menuScreen" class="overlay">
+        <div class="menu-container">
+            <h1 class="title">WI<span class="title-accent">P</span>EOUT</h1>
+            <p class="subtitle">ANTI-GRAVITY RACING</p>
+            <div class="menu-options">
+                <button id="btnStart" class="menu-btn glow-btn">START RACE</button>
+                <div class="difficulty-select">
+                    <span>DIFFICULTY:</span>
+                    <button class="diff-btn active" data-diff="easy">NOVICE</button>
+                    <button class="diff-btn" data-diff="medium">VENOM</button>
+                    <button class="diff-btn" data-diff="hard">RAPTOR</button>
+                </div>
+                <div class="controls-info">
+                    <p>↑/W Accélérer &nbsp; ↓/S Freiner</p>
+                    <p>←/A Tourner gauche &nbsp; →/D Tourner droite</p>
+                    <p>ESPAC&ensp;Boost &nbsp; X Arme &nbsp; C Bouclier</p>
+                </div>
+            </div>
+            <div class="version">v1.0 — HTML5 Clone</div>
+        </div>
+    </div>
+
+    <!-- Écran de jeu -->
+    <div id="gameScreen" class="overlay" style="display:none;">
+        <!-- Compte à rebours -->
+        <div id="countdown" class="countdown-overlay" style="display:none;">
+            <span id="countdownText" class="countdown-text">3</span>
+        </div>
+
+        <!-- HUD -->
+        <div id="hud">
+            <div class="hud-top">
+                <div class="hud-speed">
+                    <div class="hud-label">SPEED</div>
+                    <div class="hud-value" id="hudSpeed">0</div>
+                    <div class="hud-unit">KM/H</div>
+                </div>
+                <div class="hud-position">
+                    <div class="hud-label">POS</div>
+                    <div class="hud-value" id="hudPosition">1/6</div>
+                </div>
+                <div class="hud-lap">
+                    <div class="hud-label">LAP</div>
+                    <div class="hud-value" id="hudLap">0/3</div>
+                </div>
+                <div class="hud-time">
+                    <div class="hud-label">TIME</div>
+                    <div class="hud-value" id="hudTime">00:00.000</div>
+                </div>
+            </div>
+            <div class="hud-bottom">
+                <div class="hud-shield">
+                    <div class="hud-label">SHIELD</div>
+                    <div class="bar-outer"><div class="bar-inner shield-bar" id="hudShield"></div></div>
+                </div>
+                <div class="hud-boost">
+                    <div class="hud-label">BOOST</div>
+                    <div class="bar-outer"><div class="bar-inner boost-bar" id="hudBoost"></div></div>
+                </div>
+                <div class="hud-weapon" id="hudWeapon">
+                    <div class="hud-label">WEAPON</div>
+                    <div class="hud-value" id="hudWeaponName">---</div>
+                </div>
+            </div>
+            <canvas id="minimap" width="180" height="180"></canvas>
+        </div>
+    </div>
+
+    <!-- Écran de résultats -->
+    <div id="resultScreen" class="overlay" style="display:none;">
+        <div class="result-container">
+            <h2 class="result-title">RACE COMPLETE</h2>
+            <div id="resultList" class="result-list"></div>
+            <button id="btnRestart" class="menu-btn glow-btn">RESTART</button>
+            <button id="btnMenu" class="menu-btn">MENU</button>
+        </div>
+    </div>
+
+    <script type="importmap">
+    {
+        "imports": {
+            "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js",
+            "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"
+        }
+    }
+    </script>
+    <script type="module" src="js/main.js"></script>
+</body>
+</html>
