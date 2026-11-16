@@ -1,0 +1,311 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no" />
+  <meta name="theme-color" content="#FF8FD0" />
+  <title>Vroomiiies — le kart le plus mignon du monde</title>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='88'>🏎️</text></svg>" />
+  <link rel="stylesheet" href="css/style.css" />
+</head>
+<body>
+<div id="app">
+
+  <!-- ═══════════ ÉCRAN TITRE ═══════════ -->
+  <section id="screen-title" class="screen active" aria-label="Écran titre">
+    <canvas id="menuBg" aria-hidden="true"></canvas>
+    <div class="title-veil" aria-hidden="true"></div>
+
+    <div class="logo-panel">
+      <h1 class="logo-letters" id="logoLetters" aria-label="VROOMIIIES">VROOMIIIES</h1>
+      <div class="logo-sub">Le kart le plus mignon du monde</div>
+      <div class="title-buttons">
+        <button id="btnChampionship" class="btn btn-primary btn-big" type="button">🏆 Championnat</button>
+        <button id="btnFreeRace" class="btn btn-white" type="button">🏁 Course libre</button>
+        <button id="btnSound" class="btn btn-white btn-small" type="button" aria-pressed="true">🔊 Son : oui</button>
+      </div>
+    </div>
+
+    <div class="title-version">Version 1.0</div>
+    <div class="title-hint">Flèches / ZQSD : conduire · Shift : drift · Échap : pause</div>
+  </section>
+
+  <!-- ═══════════ ÉCRAN COURSE LIBRE ═══════════ -->
+  <section id="screen-libre" class="screen menu-screen" aria-label="Course libre">
+    <div class="menu-panel">
+      <div class="players-row">
+        <!-- Joueur 1 -->
+        <div class="player-col" id="libreP1Col">
+          <div class="player-head" id="libreP1Head">Joueur 1 · <strong>Mimi</strong></div>
+          <div class="avatar-row">
+            <button class="round-btn" id="libreP1Prev" type="button" aria-label="Personnage précédent">◀</button>
+            <canvas class="avatar-canvas" id="libreP1Avatar" width="132" height="132"></canvas>
+            <button class="round-btn" id="libreP1Next" type="button" aria-label="Personnage suivant">▶</button>
+          </div>
+          <div class="player-blurb" id="libreP1Blurb">Équilibrée, à l’aise partout.</div>
+          <div class="player-hint">Flèches ou manette 1</div>
+        </div>
+        <div class="vs-badge hidden" id="libreVs">VS</div>
+        <!-- Joueur 2 -->
+        <div class="player-col hidden" id="libreP2Col">
+          <div class="player-head" id="libreP2Head">Joueur 2 · <strong>Pixel</strong></div>
+          <div class="avatar-row">
+            <button class="round-btn" id="libreP2Prev" type="button" aria-label="Personnage précédent">◀</button>
+            <canvas class="avatar-canvas" id="libreP2Avatar" width="132" height="132"></canvas>
+            <button class="round-btn" id="libreP2Next" type="button" aria-label="Personnage suivant">▶</button>
+          </div>
+          <div class="player-blurb" id="libreP2Blurb">Une flèche en ligne droite.</div>
+          <div class="player-hint">ZQSD / WASD ou manette 2</div>
+        </div>
+      </div>
+
+      <div class="fields-row">
+        <div class="field-row">
+          <span class="field-label">Joueurs</span>
+          <div class="stepper" id="libreJoueurs">
+            <button class="step-btn" type="button" data-dir="-1" aria-label="Moins">−</button>
+            <span class="step-value">1 joueur</span>
+            <button class="step-btn" type="button" data-dir="1" aria-label="Plus">+</button>
+          </div>
+        </div>
+        <div class="field-row">
+          <span class="field-label">Karts en course</span>
+          <div class="stepper" id="libreKarts">
+            <button class="step-btn" type="button" data-dir="-1" aria-label="Moins">−</button>
+            <span class="step-value">30</span>
+            <button class="step-btn" type="button" data-dir="1" aria-label="Plus">+</button>
+          </div>
+        </div>
+        <div class="field-row">
+          <span class="field-label">Tours</span>
+          <div class="stepper" id="libreTours">
+            <button class="step-btn" type="button" data-dir="-1" aria-label="Moins">−</button>
+            <span class="step-value">3 tours</span>
+            <button class="step-btn" type="button" data-dir="1" aria-label="Plus">+</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="diff-tabs" id="libreDiff" role="tablist" aria-label="Difficulté">
+        <button class="diff-tab" type="button" data-diff="facile">Facile</button>
+        <button class="diff-tab active" type="button" data-diff="normal">Normal</button>
+        <button class="diff-tab" type="button" data-diff="expert">Expert</button>
+      </div>
+      <p class="menu-aside">Une seule course, pour le plaisir.</p>
+
+      <div class="circuits-grid" id="circuitGrid" role="group" aria-label="Choisir un circuit"></div>
+
+      <div class="menu-foot">
+        <button id="btnLibreBack" class="btn btn-white" type="button">Retour</button>
+        <button id="btnLibreStart" class="btn btn-primary btn-big" type="button">C'est parti !</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- ═══════════ ÉCRAN CHAMPIONNAT ═══════════ -->
+  <section id="screen-cup" class="screen menu-screen" aria-label="Championnat">
+
+    <!-- Vue 1 : configuration de la coupe -->
+    <div class="menu-panel cup-view" id="cupViewSetup">
+      <h2 class="cup-title">🏆 Championnat</h2>
+      <p class="cup-rule">4 courses · points <strong>15 / 12 / 10 / 9 / 8 / 7 / 6 / 5 / 4 / 3 / 2 / 1</strong></p>
+
+      <div class="players-row">
+        <div class="player-col" id="cupP1Col">
+          <div class="player-head" id="cupP1Head">Joueur 1 · <strong>Mimi</strong></div>
+          <div class="avatar-row">
+            <button class="round-btn" id="cupP1Prev" type="button" aria-label="Personnage précédent">◀</button>
+            <canvas class="avatar-canvas" id="cupP1Avatar" width="132" height="132"></canvas>
+            <button class="round-btn" id="cupP1Next" type="button" aria-label="Personnage suivant">▶</button>
+          </div>
+          <div class="player-blurb" id="cupP1Blurb">Équilibrée, à l’aise partout.</div>
+          <div class="player-hint">Flèches ou manette 1</div>
+        </div>
+        <div class="vs-badge hidden" id="cupVs">VS</div>
+        <div class="player-col hidden" id="cupP2Col">
+          <div class="player-head" id="cupP2Head">Joueur 2 · <strong>Pixel</strong></div>
+          <div class="avatar-row">
+            <button class="round-btn" id="cupP2Prev" type="button" aria-label="Personnage précédent">◀</button>
+            <canvas class="avatar-canvas" id="cupP2Avatar" width="132" height="132"></canvas>
+            <button class="round-btn" id="cupP2Next" type="button" aria-label="Personnage suivant">▶</button>
+          </div>
+          <div class="player-blurb" id="cupP2Blurb">Une flèche en ligne droite.</div>
+          <div class="player-hint">ZQSD / WASD ou manette 2</div>
+        </div>
+      </div>
+
+      <div class="fields-row">
+        <div class="field-row">
+          <span class="field-label">Joueurs</span>
+          <div class="stepper" id="cupJoueurs">
+            <button class="step-btn" type="button" data-dir="-1" aria-label="Moins">−</button>
+            <span class="step-value">1 joueur</span>
+            <button class="step-btn" type="button" data-dir="1" aria-label="Plus">+</button>
+          </div>
+        </div>
+        <div class="field-row">
+          <span class="field-label">Karts en course</span>
+          <div class="stepper" id="cupKarts">
+            <button class="step-btn" type="button" data-dir="-1" aria-label="Moins">−</button>
+            <span class="step-value">30</span>
+            <button class="step-btn" type="button" data-dir="1" aria-label="Plus">+</button>
+          </div>
+        </div>
+        <div class="field-row">
+          <span class="field-label">Tours</span>
+          <div class="stepper" id="cupTours">
+            <button class="step-btn" type="button" data-dir="-1" aria-label="Moins">−</button>
+            <span class="step-value">3 tours</span>
+            <button class="step-btn" type="button" data-dir="1" aria-label="Plus">+</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="diff-tabs" id="cupDiff" role="tablist" aria-label="Difficulté">
+        <button class="diff-tab" type="button" data-diff="facile">Facile</button>
+        <button class="diff-tab active" type="button" data-diff="normal">Normal</button>
+        <button class="diff-tab" type="button" data-diff="expert">Expert</button>
+      </div>
+
+      <div class="cup-draw">
+        <div class="cup-draw-head">
+          <span>Coupe en 4 courses tirées au sort parmi les 8</span>
+          <button id="btnCupReshuffle" class="btn btn-white btn-tiny" type="button">↻ Re-tirer</button>
+        </div>
+        <ol class="cup-draw-list" id="cupDrawList"></ol>
+      </div>
+
+      <div class="menu-foot">
+        <button id="btnCupBack" class="btn btn-white" type="button">Retour</button>
+        <button id="btnCupStart" class="btn btn-primary btn-big" type="button">Lancer le championnat</button>
+      </div>
+    </div>
+
+    <!-- Vue 2 : classement intermédiaire -->
+    <div class="menu-panel cup-view hidden" id="cupViewStandings">
+      <h2 class="cup-title" id="cupStandingsTitle">Classement — Course 1 / 4 terminée</h2>
+      <div class="cup-table-wrap">
+        <table class="cup-table">
+          <thead>
+            <tr><th>#</th><th>Pilote</th><th>Course</th><th>Total</th></tr>
+          </thead>
+          <tbody id="cupStandingsBody"></tbody>
+        </table>
+      </div>
+      <div class="menu-foot center">
+        <button id="btnCupNext" class="btn btn-primary btn-big" type="button">Course suivante ▶</button>
+      </div>
+    </div>
+
+    <!-- Vue 3 : podium final -->
+    <div class="menu-panel cup-view cup-final hidden" id="cupViewFinal">
+      <canvas id="cupConfetti" class="cup-confetti" aria-hidden="true"></canvas>
+      <h2 class="cup-title cup-champion-title" id="cupFinalTitle">Champion !</h2>
+      <p class="cup-champion-sub" id="cupFinalSub">Mimi remporte la coupe !</p>
+      <div class="podium">
+        <div class="podium-slot" id="cupSlot2"></div>
+        <div class="podium-slot first" id="cupSlot1"></div>
+        <div class="podium-slot" id="cupSlot3"></div>
+      </div>
+      <div class="menu-foot center">
+        <button id="btnCupAgain" class="btn btn-white" type="button">↻ Rejouer la coupe</button>
+        <button id="btnCupMenu" class="btn btn-primary" type="button">Menu</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- ═══════════ ÉCRAN COURSE ═══════════ -->
+  <section id="screen-race" class="screen" aria-label="Course">
+    <canvas id="gameCanvas"></canvas>
+
+    <div id="hud" aria-hidden="true">
+      <div class="hud-player hud-p1" id="hudP1">
+        <canvas class="hud-avatar" id="hudAvatar1" width="96" height="96"></canvas>
+        <div class="hud-pinfo">
+          <div class="hud-ptag tag-p1">P1 · <span id="hudName1">Mimi</span></div>
+          <div class="hud-posrow">
+            <span class="hud-pos" id="hudP1Pos">1er</span>
+            <span class="hud-of" id="hudOf1">/ 30</span>
+          </div>
+          <div class="hud-score">★ <span id="hudP1Score">0</span> pts</div>
+        </div>
+      </div>
+
+      <div class="hud-player hud-p2" id="hudP2">
+        <canvas class="hud-avatar" id="hudAvatar2" width="96" height="96"></canvas>
+        <div class="hud-pinfo">
+          <div class="hud-ptag tag-p2">P2 · <span id="hudName2">Pixel</span></div>
+          <div class="hud-posrow">
+            <span class="hud-pos" id="hudP2Pos">1er</span>
+            <span class="hud-of" id="hudOf2">/ 30</span>
+          </div>
+          <div class="hud-score">★ <span id="hudP2Score">0</span> pts</div>
+        </div>
+      </div>
+
+      <div id="hudTopCenter" class="hud-chip">
+        <div id="hudLap">1 / 3</div>
+        <div id="hudTime">0:00.00</div>
+      </div>
+      <div id="hudHint">Échap ou Start : pause</div>
+    </div>
+    <div id="countdown"></div>
+  </section>
+
+  <!-- ═══════════ ÉCRAN RÉSULTATS ═══════════ -->
+  <section id="screen-results" class="screen" aria-label="Résultats">
+    <div class="results-wrap">
+      <div class="results-left">
+        <h2 id="resultsTitle">Arrivée — Prairie des doudous</h2>
+        <div id="resSummary"></div>
+        <div id="resBadges" class="res-badges"></div>
+        <div id="resultsRecords"></div>
+      </div>
+      <div class="results-right">
+        <h3 class="results-subtitle">Classement</h3>
+        <ol id="resultsList"></ol>
+      </div>
+    </div>
+    <div class="results-actions">
+      <button id="btnRetry" class="btn btn-white" type="button">↻ Refaire la course</button>
+      <button id="btnResultsMenu" class="btn btn-primary" type="button">Menu</button>
+      <button id="btnCupContinue" class="btn btn-primary btn-big" type="button" style="display:none">Classement ▶</button>
+    </div>
+  </section>
+
+</div>
+
+<!-- ═══════════ PAUSE (par-dessus tout) ═══════════ -->
+<div id="pauseOverlay" role="dialog" aria-label="Pause" aria-hidden="true">
+  <div class="pause-panel">
+    <div class="pause-title">Pause</div>
+    <div class="pause-sub" id="pauseCircuit">Prairie des doudous</div>
+    <button id="btnResume" class="btn btn-primary btn-big" type="button">Reprendre</button>
+    <button id="btnRestart" class="btn btn-white" type="button">↻ Recommencer</button>
+    <button id="btnQuitRace" class="btn btn-white" type="button">Quitter</button>
+  </div>
+</div>
+
+<!-- Ordre de chargement contractuel (scripts classiques, file://) -->
+<script src="js/util.js"></script>
+<script src="js/storage.js"></script>
+<script src="js/input.js"></script>
+<script src="js/audio.js"></script>
+<script src="js/tracks.js"></script>
+<script src="js/decor.js"></script>
+<script src="js/track.js"></script>
+<script src="js/kart.js"></script>
+<script src="js/engine.js"></script>
+<script src="js/render.js"></script>
+<script src="js/hud.js"></script>
+<script src="js/screens.js"></script>
+<script src="js/art.js"></script>
+<script src="js/menu-kit.js"></script>
+<script src="js/menu-title.js"></script>
+<script src="js/menu-libre.js"></script>
+<script src="js/menu-cup.js"></script>
+<script src="js/results.js"></script>
+<script src="js/pause.js"></script>
+<script src="js/main.js"></script>
+</body>
+</html>
