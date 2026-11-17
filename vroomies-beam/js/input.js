@@ -1,0 +1,1 @@
+const Input={keys:{},init(){window.addEventListener('keydown',e=>{Input.keys[e.key]=true;if(e.key==='p'||e.key==='P'){Game.pause=!Game.pause;}if(e.key==='Escape') Game.state='menu';});window.addEventListener('keyup',e=>{Input.keys[e.key]=false;});}};

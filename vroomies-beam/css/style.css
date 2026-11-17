@@ -1,0 +1,4 @@
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:#ffd6e7;overflow:hidden;font-family:'Comic Sans MS','Segoe UI',sans-serif}
+#app{display:flex;justify-content:center;align-items:center;height:100vh}
+canvas{border:4px solid #ff8fc7;border-radius:12px;box-shadow:0 8px 32px #ff8fc780;image-rendering:pixelated}
