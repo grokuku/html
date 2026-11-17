@@ -1,0 +1,365 @@
+/* ============================================================
+   Vroomiiies — design system kawaii pastel
+   Tokens, panneaux, boutons, onglets, steppers, cartes, HUD
+   ============================================================ */
+
+:root{
+  --rose:        #F493BC;
+  --rose-vif:    #FF7EB9;
+  --violet:      #6D4C7D;
+  --menthe:      #CFF3C8;
+  --bleu:        #A2B9E7;
+  --jaune-selection: #FCE38A;
+  --turquoise:   #3FD3C6;
+  --creme:       #FFF7FB;
+  --blanc:       #FFFFFF;
+  --jaune-pale:  #FFF3C4;
+  --contour:     var(--violet);
+  --epaisseur:   3px;
+  --r-sm: 12px;
+  --r-md: 18px;
+  --r-lg: 28px;
+  --ombre-douce: 0 10px 24px rgba(109, 76, 125, .18);
+  --ombre-cart:  0 4px 10px rgba(109, 76, 125, .14);
+  --pop: cubic-bezier(.2, 1.6, .4, 1);
+  --police: ui-rounded, "Comic Sans MS", "Comic Sans", "Trebuchet MS", "Segoe UI", system-ui, sans-serif;
+}
+
+*{ box-sizing:border-box; }
+
+/* CRIT-3 : l'attribut hidden doit toujours l'emporter, même là où le CSS pose un display */
+[hidden]{ display:none !important; }
+
+html,body{
+  margin:0; padding:0; height:100%; overflow:hidden;
+  font-family:var(--police);
+  color:var(--violet);
+  background:#FFE3F1;
+  -webkit-user-select:none; user-select:none;
+}
+
+canvas#canvas-course, canvas#menu-canvas{
+  position:fixed; inset:0; width:100vw; height:100vh; display:block;
+}
+canvas#menu-canvas{ z-index:0; }
+canvas#canvas-course{ z-index:1; }
+
+/* ---------- écran d'erreur JS ---------- */
+#erreur-js{
+  position:fixed; inset:auto 12px 12px 12px; z-index:999;
+  background:#FFDCEC; color:var(--violet);
+  border:var(--epaisseur) solid var(--violet); border-radius:var(--r-md);
+  padding:12px 16px; font-size:14px; max-height:30vh; overflow:auto;
+  box-shadow:var(--ombre-douce);
+}
+#erreur-detail{ font-size:11px; white-space:pre-wrap; margin:6px 0 0; opacity:.8; }
+
+/* ---------- écrans génériques ---------- */
+.screen{
+  position:fixed; inset:0; z-index:10;
+  display:flex; align-items:center; justify-content:center;
+  padding:16px;
+  animation:fondre .25s ease-out;
+}
+.screen[hidden]{ display:none; }
+
+.panneau{
+  width:min(1240px, 94vw);
+  max-height:94vh; overflow-y:auto; overscroll-behavior:contain;
+  background:var(--creme);
+  border:var(--epaisseur) solid var(--contour);
+  border-radius:var(--r-lg);
+  box-shadow:var(--ombre-douce);
+  padding:22px 28px 26px;
+  animation:pop .38s var(--pop);
+}
+.petit-panneau{
+  width:min(420px, 92vw);
+  background:var(--creme);
+  border:var(--epaisseur) solid var(--contour);
+  border-radius:var(--r-lg);
+  box-shadow:var(--ombre-douce);
+  padding:24px 28px;
+  text-align:center;
+  animation:pop .38s var(--pop);
+}
+.panneau-menu{
+  width:min(560px, 94vw);
+  text-align:center;
+  background:rgba(255,247,251,.94);
+}
+
+/* ---------- titre blanc à contour coloré, légèrement arqué (MINEUR-4) ---------- */
+#titre{
+  margin:.1em 0 .35em; font-size:clamp(38px, 7vw, 74px);
+  letter-spacing:.02em; line-height:1.05;
+  white-space:nowrap;
+}
+#titre span{
+  display:inline-block;
+  color:#fff;
+  -webkit-text-stroke:6px var(--c, var(--rose-vif));
+  paint-order:stroke fill;
+  text-shadow:0 5px 0 rgba(109,76,125,.28), 0 8px 14px rgba(109,76,125,.22);
+  transform:rotate(var(--rot, 0deg)) translateY(var(--dy, 0px));
+}
+#titre .l1{ --c:var(--rose-vif); }
+#titre .l2{ --c:#FFB627; }
+#titre .l3{ --c:#5FB8E6; }
+#titre .l4{ --c:#57C78E; }
+#titre .l5{ --c:#B97ED8; }
+@supports not (-webkit-text-stroke: 1px red){
+  /* filet de sécurité : contour via ombres multiples */
+  #titre span{
+    -webkit-text-stroke:0;
+    text-shadow:
+      -3px -3px 0 var(--c), 3px -3px 0 var(--c), -3px 3px 0 var(--c), 3px 3px 0 var(--c),
+      0 5px 0 rgba(109,76,125,.28);
+  }
+}
+
+h2{ margin:.1em 0 .4em; font-size:34px; }
+h3.sur-titre{ margin:18px 0 8px; font-size:17px; text-transform:uppercase; letter-spacing:.06em; opacity:.8; }
+.note{ font-size:16px; margin:.4em 0; }
+.aide{ font-size:14px; opacity:.65; }
+.pied{ margin-top:18px; font-size:13px; opacity:.6; }
+.pied a{ color:var(--violet); }
+.pied-centre{ text-align:center; margin-top:20px; }
+.entete{ display:flex; align-items:center; gap:14px; }
+.entete h2{ flex:1; }
+
+/* ---------- boutons ---------- */
+.btn{
+  font-family:var(--police);
+  font-size:20px; font-weight:700; color:var(--violet);
+  background:var(--blanc);
+  border:var(--epaisseur) solid var(--contour);
+  border-radius:var(--r-md);
+  padding:12px 26px;
+  cursor:pointer;
+  box-shadow:var(--ombre-cart);
+  transition:transform .12s var(--pop), box-shadow .12s;
+}
+.btn:hover{ transform:translateY(-2px) scale(1.02); }
+.btn:active{ transform:translateY(1px) scale(.98); box-shadow:none; }
+.btn:focus-visible{ outline:3px dashed var(--turquoise); outline-offset:3px; }
+
+.btn-rose{ background:var(--rose-vif); color:#fff; text-shadow:0 1px 0 rgba(109,76,125,.4); }
+.btn-bleu{ background:var(--bleu); }
+.btn-menthe{ background:var(--menthe); }
+.btn-jaune{ background:var(--jaune-selection); }
+.btn-fantome{ background:transparent; box-shadow:none; border-style:dashed; opacity:.85; }
+/* MINEUR-4 : « Course libre » blanc à contour noir */
+.btn-blanc-noir{ background:var(--blanc); border-color:#17121c; color:#17121c; }
+
+.btn-geant{ font-size:26px; padding:16px 44px; border-radius:var(--r-lg); width:100%; }
+.colonne{ display:flex; flex-direction:column; gap:14px; align-items:stretch; max-width:340px; margin:0 auto; }
+
+/* ---------- onglets (difficulté, joueurs) : jaune = actif ---------- */
+.onglets{ display:inline-flex; gap:8px; flex-wrap:wrap; }
+.onglet{
+  font-family:var(--police); font-size:17px; font-weight:700;
+  color:var(--violet); background:var(--blanc);
+  border:var(--epaisseur) solid var(--contour);
+  border-radius:999px; padding:9px 22px; cursor:pointer;
+  transition:transform .12s var(--pop);
+}
+.onglet:hover{ transform:scale(1.04); }
+.onglet.actif{
+  background:var(--jaune-selection);
+  box-shadow:var(--ombre-cart);
+}
+
+/* ---------- steppers − / + ---------- */
+.stepper{
+  display:inline-flex; align-items:center; gap:10px;
+  background:var(--blanc);
+  border:var(--epaisseur) solid var(--contour);
+  border-radius:999px; padding:6px 8px;
+  box-shadow:var(--ombre-cart);
+}
+.btn-stepper{
+  font-size:24px; line-height:1; padding:4px 16px;
+  border-radius:50%; background:var(--menthe);
+}
+.stepper-valeur{ font-size:24px; font-weight:800; min-width:52px; text-align:center; }
+
+/* ---------- cartes circuits : bordure turquoise si active ---------- */
+.grille-circuits{
+  display:grid; gap:12px;
+  grid-template-columns:repeat(auto-fill, minmax(150px, 1fr));
+}
+.carte-circuit{
+  background:var(--blanc);
+  border:var(--epaisseur) solid var(--contour);
+  border-radius:var(--r-md);
+  padding:8px; cursor:pointer; text-align:center;
+  box-shadow:var(--ombre-cart);
+  transition:transform .12s var(--pop);
+  position:relative;
+}
+.carte-circuit:hover{ transform:translateY(-3px) scale(1.02); }
+.carte-circuit.active{ border-color:var(--turquoise); border-width:4px; }
+.carte-circuit.masquee{ display:none; }
+.carte-circuit canvas{ width:100%; height:78px; display:block; border-radius:var(--r-sm); }
+.carte-circuit .nom{ font-size:15px; font-weight:700; margin-top:5px; }
+.carte-circuit .record{ font-size:12px; opacity:.75; margin-top:2px; font-variant-numeric:tabular-nums; }
+/* championnat : un seul circuit visible, centré (MINEUR-5) */
+.grille-circuits.unique{ grid-template-columns: minmax(170px, 260px); justify-content:center; }
+
+/* ---------- carrousel personnage (MINEUR-5, remplace la grille de 6 cartes) ---------- */
+.carrousel{
+  display:flex; align-items:center; gap:14px; justify-content:center;
+  margin-top:4px;
+}
+.carrousel .fleche{
+  font-size:30px; line-height:1; padding:8px 17px; border-radius:50%;
+  flex:none;
+}
+.carte-carrousel{
+  display:flex; align-items:center; gap:16px; text-align:left;
+  background:var(--blanc);
+  border:var(--epaisseur) solid var(--contour);
+  border-radius:var(--r-md);
+  padding:12px 20px; min-width:min(420px, 72vw);
+  box-shadow:var(--ombre-cart);
+}
+.carte-carrousel .avatar-box{ flex:none; width:72px; height:72px; }
+.carte-carrousel .avatar-box canvas{ width:72px; height:72px; display:block; }
+.carte-carrousel .nom{ font-weight:800; font-size:19px; }
+.carte-carrousel .desc{ font-size:14px; opacity:.75; font-style:italic; line-height:1.3; margin-top:2px; }
+.carte-carrousel .aide{ margin-top:6px; }
+.carte-carrousel .onglets{ margin-top:8px; }
+.carte-carrousel .onglet{ font-size:13px; padding:4px 14px; }
+
+/* ---------- réglages en bas ---------- */
+.reglages-bas{
+  display:flex; flex-wrap:wrap; gap:22px 34px; align-items:flex-start;
+  margin-top:6px;
+}
+.bloc{ display:flex; flex-direction:column; }
+.bloc .sur-titre{ margin-top:8px; }
+.bloc .aide{ margin-top:6px; max-width:260px; }
+/* MINEUR-5 : Retour + « C’est parti ! » groupés en bas à droite */
+.pied-droite{ display:flex; justify-content:flex-end; align-items:center; gap:14px; margin-top:22px; }
+.pied-droite .btn-demarrer{ width:auto; }
+
+/* ---------- HUD ---------- */
+#hud{ position:fixed; inset:0; z-index:20; pointer-events:none; }
+#hud[hidden]{ display:none; }
+.pill{
+  display:inline-flex; align-items:center; gap:6px;
+  background:var(--blanc);
+  border:var(--epaisseur) solid var(--contour);
+  border-radius:999px;
+  padding:7px 18px;
+  font-size:19px; font-weight:800; color:var(--violet);
+  box-shadow:var(--ombre-cart);
+}
+#hud-gauche{ position:absolute; top:14px; left:16px; display:flex; flex-direction:column; gap:8px; align-items:flex-start; }
+#hud-groupe .tete-lapin{ flex:none; }
+#hud-groupe .sep{ opacity:.45; font-weight:900; }
+#hud-champ{ font-size:15px; padding:5px 14px; background:var(--jaune-pale); }
+#hud-centre{ position:absolute; top:14px; left:50%; transform:translateX(-50%); display:flex; gap:10px; }
+#hud-chrono{ font-variant-numeric:tabular-nums; }
+#hud-aide{ position:absolute; bottom:16px; left:50%; transform:translateX(-50%); font-size:15px; opacity:.85; }
+#hud-reglages{
+  position:absolute; bottom:14px; right:16px;
+  width:52px; height:52px; border-radius:50%;
+  background:var(--blanc); border:var(--epaisseur) solid var(--contour);
+  box-shadow:var(--ombre-cart); cursor:pointer; pointer-events:auto;
+  display:flex; align-items:center; justify-content:center;
+}
+.engrenage{
+  width:20px; height:20px; border-radius:50%;
+  background:radial-gradient(circle, var(--violet) 0 34%, var(--rose-vif) 38% 100%);
+  box-shadow:0 0 0 4px var(--rose-vif), 0 0 0 6px var(--violet);
+}
+
+/* ---------- compte à rebours ---------- */
+#compte{
+  position:fixed; inset:0; z-index:30; pointer-events:none;
+  display:flex; align-items:center; justify-content:center;
+}
+#compte[hidden]{ display:none; }
+#compte-txt{
+  font-size:clamp(80px, 16vw, 190px); font-weight:900; color:#fff;
+  -webkit-text-stroke:5px var(--violet);
+  text-shadow:0 8px 0 var(--rose), 0 16px 26px rgba(109,76,125,.4);
+  animation:comptePop .55s var(--pop);
+  text-align:center; padding:0 20px;
+}
+
+/* ---------- pause / modales ---------- */
+#ecran-pause, #modal-isolation{
+  position:fixed; inset:0; z-index:40;
+  display:flex; align-items:center; justify-content:center;
+  background:rgba(109,76,125,.25);
+  backdrop-filter:blur(3px);
+}
+#ecran-pause[hidden], #modal-isolation[hidden]{ display:none; }
+#modal-isolation{ z-index:60; }
+
+/* ---------- résultats ---------- */
+.panneau-resultats{ width:min(760px, 94vw); }
+#resultats-record{
+  display:inline-block; background:var(--jaune-selection);
+  border:var(--epaisseur) solid var(--contour); border-radius:999px;
+  padding:6px 18px; font-weight:900; animation:briller 1.2s ease-in-out infinite alternate;
+}
+.classement{ margin-top:10px; max-height:46vh; overflow-y:auto; }
+.ligne-clt{
+  display:flex; align-items:center; gap:12px;
+  background:var(--blanc);
+  border:2px solid rgba(109,76,125,.35);
+  border-radius:var(--r-sm);
+  padding:5px 12px; margin-bottom:6px;
+  font-size:16px;
+}
+.ligne-clt.joueur{ background:var(--jaune-pale); border-color:var(--turquoise); border-width:3px; }
+.ligne-clt .rang{ font-weight:900; width:44px; flex:none; }
+.ligne-clt .medaille{ font-weight:900; }
+.ligne-clt canvas{ width:34px; height:34px; flex:none; }
+.ligne-clt .nom{ flex:1; font-weight:700; }
+.ligne-clt .stat{ font-variant-numeric:tabular-nums; opacity:.85; min-width:56px; text-align:right; }
+/* AGRÉ-2 : détail des manches à la fin du championnat */
+.manches-championnat{ margin-top:12px; border-top:3px dashed rgba(109,76,125,.3); padding-top:10px; }
+.manches-championnat .ligne-clt .nom{ font-weight:600; }
+#resultats-actions{ display:flex; gap:14px; justify-content:center; flex-wrap:wrap; }
+
+/* ---------- fps debug ---------- */
+#fps{
+  position:fixed; top:8px; right:8px; z-index:80;
+  background:rgba(255,255,255,.85); border-radius:8px; padding:3px 10px;
+  font-size:13px; font-weight:700;
+}
+
+/* ---------- animations ---------- */
+@keyframes pop{
+  0%{ transform:scale(.7); opacity:0; }
+  100%{ transform:scale(1); opacity:1; }
+}
+@keyframes fondre{ from{ opacity:0; } to{ opacity:1; } }
+@keyframes comptePop{
+  0%{ transform:scale(.3); opacity:0; }
+  60%{ transform:scale(1.15); opacity:1; }
+  100%{ transform:scale(1); }
+}
+@keyframes briller{
+  from{ box-shadow:0 0 0 rgba(252,227,138,0); }
+  to{ box-shadow:0 0 22px rgba(255,190,39,.9); }
+}
+
+@media (max-width:760px){
+  .pill{ font-size:15px; padding:5px 12px; }
+  .btn-geant{ font-size:21px; padding:13px 26px; }
+  .reglages-bas{ gap:14px 20px; }
+}
+
+@media (prefers-reduced-motion: reduce){
+  *, *::before, *::after{
+    animation-duration:.01ms !important;
+    animation-iteration-count:1 !important;
+    transition-duration:.01ms !important;
+  }
+}

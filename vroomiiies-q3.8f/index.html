@@ -1,0 +1,189 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Vroomiiies</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Ccircle cx='16' cy='16' r='14' fill='%23F493BC' stroke='%236D4C7D' stroke-width='3'/%3E%3Ccircle cx='11' cy='14' r='2' fill='%236D4C7D'/%3E%3Ccircle cx='21' cy='14' r='2' fill='%236D4C7D'/%3E%3Cpath d='M12 20 Q16 23 20 20' stroke='%236D4C7D' stroke-width='2' fill='none' stroke-linecap='round'/%3E%3C/svg%3E">
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+<div id="erreur-js" hidden>
+  <strong>Oups !</strong> Une erreur technique est survenue. Rechargez la page (F5).
+  <pre id="erreur-detail"></pre>
+</div>
+
+<!-- canvas du fond animé du menu -->
+<canvas id="menu-canvas"></canvas>
+<!-- canvas de la course -->
+<canvas id="canvas-course" hidden></canvas>
+
+<!-- ===== HUD de course ===== -->
+<div id="hud" hidden>
+  <div id="hud-gauche">
+    <div class="pill" id="hud-groupe">
+      <svg class="tete-lapin" width="24" height="24" viewBox="0 0 24 24" aria-hidden="true">
+        <ellipse cx="8.6" cy="6.4" rx="2.4" ry="5.2" fill="#fff" stroke="#6D4C7D" stroke-width="1.6" transform="rotate(-14 8.6 6.4)"/>
+        <ellipse cx="15.4" cy="6.4" rx="2.4" ry="5.2" fill="#fff" stroke="#6D4C7D" stroke-width="1.6" transform="rotate(14 15.4 6.4)"/>
+        <ellipse cx="8.9" cy="6.9" rx="1.1" ry="3.2" fill="#FFB7D2" transform="rotate(-14 8.9 6.9)"/>
+        <ellipse cx="15.1" cy="6.9" rx="1.1" ry="3.2" fill="#FFB7D2" transform="rotate(14 15.1 6.9)"/>
+        <circle cx="12" cy="15" r="6.4" fill="#fff" stroke="#6D4C7D" stroke-width="1.7"/>
+        <circle cx="9.7" cy="14.2" r="1" fill="#6D4C7D"/>
+        <circle cx="14.3" cy="14.2" r="1" fill="#6D4C7D"/>
+        <path d="M10.4 17 Q12 18.4 13.6 17" stroke="#6D4C7D" stroke-width="1.2" fill="none" stroke-linecap="round"/>
+        <circle cx="12" cy="15.7" r="0.9" fill="#F493BC"/>
+      </svg>
+      <span id="hud-pos">1er / 30</span>
+      <span class="sep">·</span>
+      <span id="hud-score">0 ★ 0 pts</span>
+    </div>
+    <div class="pill pill-champ" id="hud-champ" hidden>Championnat : 0 pts</div>
+  </div>
+  <div id="hud-centre">
+    <div class="pill" id="hud-tour">1/3</div>
+    <div class="pill" id="hud-chrono">0:00.00</div>
+  </div>
+  <div id="hud-aide" class="pill">Échap ou Start : pause</div>
+  <button id="hud-reglages" title="Pause" aria-label="Pause"><span class="engrenage"></span></button>
+</div>
+
+<!-- compte à rebours -->
+<div id="compte" hidden><span id="compte-txt"></span></div>
+
+<!-- ===== MENU ===== -->
+<section class="screen" id="ecran-menu">
+  <div class="panneau panneau-menu">
+    <h1 id="titre" aria-label="Vroomiiies"><span class="l1" style="--rot:-7deg;--dy:7px">V</span><span class="l2" style="--rot:-5.5deg;--dy:4px">r</span><span class="l3" style="--rot:-4deg;--dy:2px">o</span><span class="l4" style="--rot:-2.5deg;--dy:1px">o</span><span class="l5" style="--rot:-1deg;--dy:0px">m</span><span class="l1" style="--rot:1deg;--dy:0px">i</span><span class="l2" style="--rot:2.5deg;--dy:1px">i</span><span class="l3" style="--rot:4deg;--dy:2px">i</span><span class="l4" style="--rot:5.5deg;--dy:4px">e</span><span class="l5" style="--rot:7deg;--dy:7px">s</span></h1>
+    <div class="colonne">
+      <button class="btn btn-rose btn-geant" id="btn-championnat">Championnat</button>
+      <button class="btn btn-blanc-noir btn-geant" id="btn-libre">Course libre</button>
+      <button class="btn btn-fantome" id="btn-son-menu">Son : activé</button>
+    </div>
+    <p class="aide">Flèches ou manette 1</p>
+    <footer class="pied"><a href="#" id="lien-isolation">Isolation</a> · Version 1.1</footer>
+  </div>
+</section>
+
+<!-- ===== RÉGLAGES (championnat + libre) ===== -->
+<section class="screen" id="ecran-reglages" hidden>
+  <div class="panneau panneau-reglages">
+    <header class="entete">
+      <h2 id="reglages-titre">Championnat</h2>
+      <button class="btn btn-fantome btn-son" id="btn-son-reglages">Son : activé</button>
+    </header>
+    <p class="note" id="reglages-note"></p>
+
+    <h3 class="sur-titre" id="sur-titre-circuit">Circuit</h3>
+    <div id="circuits" class="grille-circuits"></div>
+
+    <h3 class="sur-titre">Personnage</h3>
+    <div class="carrousel" id="carrousel-perso">
+      <button class="btn fleche" id="btn-perso-prev" aria-label="Personnage précédent">‹</button>
+      <div class="carte-carrousel">
+        <div id="perso-avatar" class="avatar-box" aria-hidden="true"></div>
+        <div class="infos">
+          <div class="nom" id="perso-nom">Joueur 1 · Mimi</div>
+          <div class="desc" id="perso-desc"></div>
+          <div id="perso-onglets" class="onglets" hidden></div>
+          <p class="aide" id="perso-hint">Flèches ou manette 1</p>
+        </div>
+      </div>
+      <button class="btn fleche" id="btn-perso-next" aria-label="Personnage suivant">›</button>
+    </div>
+
+    <div class="reglages-bas">
+      <div class="bloc">
+        <h3 class="sur-titre">Difficulté</h3>
+        <div id="onglets-difficulte" class="onglets" role="tablist"></div>
+      </div>
+      <div class="bloc">
+        <h3 class="sur-titre">Karts en piste</h3>
+        <div class="stepper" id="stepper-karts">
+          <button class="btn btn-stepper" data-step="-1" aria-label="Moins">−</button>
+          <span class="stepper-valeur" id="stepper-karts-valeur">30</span>
+          <button class="btn btn-stepper" data-step="1" aria-label="Plus">+</button>
+        </div>
+      </div>
+      <div class="bloc">
+        <h3 class="sur-titre">Tours de piste</h3>
+        <div class="stepper" id="stepper-tours">
+          <button class="btn btn-stepper" data-step="-1" aria-label="Moins">−</button>
+          <span class="stepper-valeur" id="stepper-tours-valeur">3</span>
+          <button class="btn btn-stepper" data-step="1" aria-label="Plus">+</button>
+        </div>
+      </div>
+      <div class="bloc" id="bloc-2joueurs">
+        <h3 class="sur-titre">Joueurs</h3>
+        <div id="onglets-joueurs" class="onglets" role="tablist"></div>
+        <p class="aide" id="aide-joueurs"></p>
+      </div>
+    </div>
+
+    <footer class="pied-droite">
+      <button class="btn btn-fantome" id="btn-retour">← Retour</button>
+      <button class="btn btn-rose btn-geant btn-demarrer" id="btn-demarrer">C’est parti !</button>
+    </footer>
+  </div>
+</section>
+
+<!-- ===== PAUSE ===== -->
+<div id="ecran-pause" hidden>
+  <div class="panneau petit-panneau">
+    <h2>Pause</h2>
+    <div class="colonne">
+      <button class="btn btn-rose" id="btn-reprendre">Reprendre</button>
+      <button class="btn btn-bleu" id="btn-son-pause">Son : activé</button>
+      <button class="btn btn-menthe" id="btn-recommencer">Recommencer</button>
+      <button class="btn btn-fantome" id="btn-quitter">Quitter la course</button>
+    </div>
+    <p class="aide">Échap ou Start pour reprendre</p>
+  </div>
+</div>
+
+<!-- ===== RÉSULTATS ===== -->
+<section class="screen" id="ecran-resultats" hidden>
+  <div class="panneau panneau-resultats">
+    <header class="entete">
+      <h2 id="resultats-titre">Résultats</h2>
+      <button class="btn btn-fantome btn-son" id="btn-son-resultats">Son : activé</button>
+    </header>
+    <p class="note" id="resultats-record" hidden>NOUVEAU RECORD !</p>
+    <div id="classement" class="classement"></div>
+    <p class="note" id="resultats-progression"></p>
+    <footer class="pied-centre" id="resultats-actions"></footer>
+  </div>
+</section>
+
+<!-- ===== MODALE ISOLATION ===== -->
+<div id="modal-isolation" hidden>
+  <div class="panneau petit-panneau">
+    <h2>Isolation</h2>
+    <p class="note">Remet les réglages et efface les records. Le jeu retrouve son état d’origine.</p>
+    <div class="colonne">
+      <button class="btn btn-rose" id="btn-reset">Réinitialiser réglages et records</button>
+      <button class="btn btn-fantome" id="btn-fermer-isolation">Fermer</button>
+    </div>
+  </div>
+</div>
+
+<div id="fps" hidden></div>
+
+<script src="js/util.js"></script>
+<script src="js/storage.js"></script>
+<script src="js/config.js"></script>
+<script src="js/spline.js"></script>
+<script src="js/tracks.js"></script>
+<script src="js/draw.js"></script>
+<script src="js/render.js"></script>
+<script src="js/input.js"></script>
+<script src="js/audio.js"></script>
+<script src="js/physics.js"></script>
+<script src="js/ai.js"></script>
+<script src="js/race.js"></script>
+<script src="js/ui.js"></script>
+<script src="js/menubg.js"></script>
+<script src="js/debug.js"></script>
+<script src="js/main.js"></script>
+</body>
+</html>
